@@ -38,3 +38,10 @@ Proceed without asking:
 * Adding tests for already-specified behavior
 * Following a pattern already established elsewhere in the codebase
 * Anything TASKS.md already pre-approved explicitly
+
+## Build log
+
+Running record of chunk hand-offs and escalations. One entry per event, newest last.
+
+* **2026-09-08 — Reviewer session started.** Watching the build chunk by chunk; chunks are the TASKS.md phases in order (0 → 5), one phase per builder session, no combining or splitting. On each builder going idle: read its summary, check it against the escalation criteria above, then either start the next phase's builder or hand the decision to Adam and wait.
+* **2026-09-08 — Phase 0 builder running** (`session_01VNn4vAkyhpL3K7whuNNj5T`, branch `claude/amazing-hamilton-18epoe`), started outside this session. Cloud sessions aren't reachable as peers for an idle subscription, so the reviewer polls the session record on a self-scheduled check-in instead. Gate is at the end of Phase 0, before Phase 1 starts.
