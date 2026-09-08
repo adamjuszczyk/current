@@ -7,8 +7,8 @@ import type { Block, BlockStatus } from '../types'
 // adds a small coloured marker so the two don't read identically.
 const statusClasses: Record<BlockStatus, string> = {
   active: 'bg-blue-500 text-white',
-  done: 'bg-gray-300 text-gray-500 grayscale',
-  upcoming: 'bg-gray-300 text-gray-500 grayscale',
+  done: 'bg-gray-300 text-gray-500',
+  upcoming: 'bg-gray-300 text-gray-500',
 }
 
 // Freeform drag via plain pointer events (3.2) — no drag-and-drop library.
@@ -43,7 +43,9 @@ export function BlockCard({ block }: { block: Block }) {
     const dy = event.clientY - startRef.current.pointerY
     const finalPos = { x: startRef.current.blockX + dx, y: startRef.current.blockY + dy }
     setPos(finalPos)
-    updatePosition.mutate({ id: block.id, areaId: block.area_id, x: finalPos.x, y: finalPos.y })
+    if (finalPos.x !== block.x || finalPos.y !== block.y) {
+      updatePosition.mutate({ id: block.id, areaId: block.area_id, x: finalPos.x, y: finalPos.y })
+    }
   }
 
   return (
