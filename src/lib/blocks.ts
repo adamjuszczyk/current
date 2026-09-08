@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Block } from '../types'
+import type { Block, BlockStatus } from '../types'
 import { supabase } from './supabase'
 
 // Server state for Blocks, through TanStack Query — same pattern as
@@ -67,6 +67,41 @@ export function useUpdateBlockPosition() {
   return useMutation({
     mutationFn: async ({ id, x, y }: { id: string; areaId: string; x: number; y: number }) => {
       const { error } = await supabase.from('blocks').update({ x, y }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: blocksKey(variables.areaId) }),
+  })
+}
+
+// Name and status edits from the Block popup (4.1, 4.2). Status is only
+// ever set here, manually — nothing infers it from task completion.
+export function useUpdateBlock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      areaId: _areaId,
+      ...changes
+    }: {
+      id: string
+      areaId: string
+      name?: string
+      status?: BlockStatus
+    }) => {
+      const { error } = await supabase.from('blocks').update(changes).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: blocksKey(variables.areaId) }),
+  })
+}
+
+// Block delete (4.5) — its Tasks are removed by the `on delete cascade` FK,
+// nothing to hand-delete here.
+export function useDeleteBlock() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; areaId: string }) => {
+      const { error } = await supabase.from('blocks').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: blocksKey(variables.areaId) }),

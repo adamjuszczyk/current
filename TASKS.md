@@ -107,11 +107,11 @@ Two things every later phase depends on. Built once, kept plain.
 
 Double-clicking a Block opens one popup that does everything below.
 
-- [ ] **4.1** Block name editable.
-- [ ] **4.2** Status set manually here — Upcoming / Active / Done. No automatic transitions; completing every task does not move a block to Done.
-- [ ] **4.3** Tasks as a flat, unordered list. Add, edit inline, toggle complete, delete individually.
-- [ ] **4.4** Task delete goes through the confirm dialog.
-- [ ] **4.5** Block delete goes through the confirm dialog, then deletes the block and all its tasks (cascade).
+- [x] **4.1** Block name editable.
+- [x] **4.2** Status set manually here — Upcoming / Active / Done. No automatic transitions; completing every task does not move a block to Done.
+- [x] **4.3** Tasks as a flat, unordered list. Add, edit inline, toggle complete, delete individually.
+- [x] **4.4** Task delete goes through the confirm dialog.
+- [x] **4.5** Block delete goes through the confirm dialog, then deletes the block and all its tasks (cascade).
   - **Acceptance:** full CRUD on tasks works without leaving the popup; no task ordering UI exists.
 
 ---

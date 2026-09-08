@@ -3,6 +3,7 @@ import { useBlocks } from '../lib/blocks'
 import { useUIStore } from '../store/uiStore'
 import { BlockCard } from './BlockCard'
 import { BlockCreatePopup } from './BlockCreatePopup'
+import { BlockEditPopup } from './BlockEditPopup'
 
 // Half the BlockCard's fixed footprint (w-40 ~= 160px, plus padding/shadow),
 // used only to centre a newly-created block under its coordinates (3.5).
@@ -57,6 +58,11 @@ export function Canvas({ areaId }: { areaId: string }) {
         typeof popupContext?.areaId === 'string' &&
         isPosition(popupContext.position) && (
           <BlockCreatePopup areaId={popupContext.areaId} position={popupContext.position} onClose={closePopup} />
+        )}
+      {activePopup === 'block-edit' &&
+        typeof popupContext?.areaId === 'string' &&
+        typeof popupContext?.blockId === 'string' && (
+          <BlockEditPopup areaId={popupContext.areaId} blockId={popupContext.blockId} onClose={closePopup} />
         )}
     </div>
   )
