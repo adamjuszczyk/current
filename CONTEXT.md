@@ -15,7 +15,7 @@ Fresh, dedicated Supabase project. No shared backend or cross-app data access wi
 **Not in scope for this build:** Vision, Phase, connections/branching/merging, sub-projects, tabs, resize, theming, visual design. A fuller v2+ vision covering these exists, but is kept outside this repo on purpose, so it can't shape this build. It is not present here — don't look for it, don't reconstruct it, and its absence is not a gap to flag or escalate. Everything needed for this build is already in `CURRENT-V1-SANDBOX-SPEC.md`.
 
 ## Status
-Phase 0 (project setup) and Phase 1 (shared primitives) are done. Phase 2 (Areas) is next.
+Phase 0 (project setup), Phase 1 (shared primitives), and Phase 2 (Areas) are done. Phase 3 (Canvas and Blocks) is next.
 
 Both decisions that were open after planning are now resolved and reflected in the spec and `TASKS.md`: Supabase email auth with one account and RLS locking every table to that user, one login screen (Phase 0.3); and Free Notes get their own explicit delete action gated by the confirm dialog, with auto-discard-on-empty-blur covering only a note that was never given real content (Phase 5.4).
 
@@ -52,6 +52,17 @@ Nothing in this session had credentials or dashboard access to do any of this �
 - Verified in a headless browser (temporary test buttons wired into `App.tsx` for the session, reverted afterward — not part of the committed code): popup opens and grabs focus, closes on Escape, closes on backdrop click, stays open on clicks inside its content; confirm dialog's Cancel/Confirm/Escape all resolve the awaited promise correctly.
 - No new dependencies. No delete paths, Areas, Canvas, Blocks, Tasks, or Notes were built — those start in Phase 2.
 - Fixed post-review: Escape now closes only the topmost popup (module-level open-order stack in `Popup.tsx`), and the backdrop only closes on a click where both mousedown and mouseup land on the backdrop itself, not on a drag that starts inside the dialog and releases outside.
+
+### Phase 2 — what was built
+
+- `src/types.ts` — `Area` row type, mirroring `supabase/migrations/0001_init.sql`; grows as later phases add Blocks, Tasks, and Notes.
+- `src/lib/areas.ts` — TanStack Query hooks (`useAreas`, `useCreateArea`, `useUpdateArea`, `useDeleteArea`) wrapping the Supabase `areas` table. Delete only removes the `areas` row — Blocks and Notes underneath are left to the migration's `on delete cascade`, per the instruction not to hand-delete children in client code.
+- `src/components/AreaTabs.tsx` — the tab row: one tab per Area ordered by `created_at` (query already orders this way), click to activate via `uiStore.setActiveAreaId`, "+" opens the create popup, double-click opens the edit popup. A `useEffect` keeps `activeAreaId` valid, falling back to the first remaining Area (or `null`) whenever the active one disappears — covers both first load and post-delete.
+- `src/components/AreaCreatePopup.tsx` / `AreaEditPopup.tsx` — both reuse `Popup`. Create is a single name field. Edit has the name field plus Delete, which awaits `useConfirm()` before calling the delete mutation — no instant deletes.
+- `src/App.tsx` — the placeholder "Signed in as…" screen is now a real shell: `AreaTabs` plus sign-out in a header, and a content area below that names the active Area (a stand-in for the Phase 3 Canvas) or shows an empty-state message when there are no Areas at all.
+- No new dependencies. Popup and `useConfirm()` reused as-is, unmodified.
+- **2.4's acceptance criterion is unverified**: no live Supabase project/credentials in this environment, and Blocks/Notes don't exist yet to actually test the cascade. What's implemented is the client side only — delete the `areas` row and trust the migration's `on delete cascade` — matching the instruction not to hand-delete children. Confirming "no orphaned rows" needs a live project and, practically, Blocks/Notes from Phase 3 to have something to orphan.
+- Verified in a headless browser against an in-memory mock of the Supabase client (temporary, not committed — restored from the real client before pushing, same pattern as Phase 1's temporary test buttons): starting from zero Areas, the empty state renders; "+" opens the create popup, submitting adds a tab and makes it active; a second Area is created and both tabs render in creation order; clicking a tab switches the active one; double-clicking a tab opens the edit popup pre-filled with its name and a Delete action; renaming through the edit popup updates the tab; clicking Delete opens the confirm dialog naming the Area, Cancel leaves the edit popup open and the Area intact, Confirm deletes it; after deleting the active Area the remaining one becomes active; deleting the last Area returns to the empty state. No console or page errors during any of this. Not exercised: the actual RLS-backed Supabase network calls, and the cascade to Blocks/Notes (per above).
 
 ## Escalation criteria
 

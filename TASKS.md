@@ -78,12 +78,12 @@ Two things every later phase depends on. Built once, kept plain.
 
 ## Phase 2 — Areas
 
-- [ ] **2.1** Area tab row across the top. One tab per Area, ordered by `created_at`. Clicking a tab makes it the active Area.
+- [x] **2.1** Area tab row across the top. One tab per Area, ordered by `created_at`. Clicking a tab makes it the active Area.
   - No reordering, no drag — the spec doesn't have it.
-- [ ] **2.2** "+" button at the end of the tab row → popup with a single name field. Submitting creates the Area and makes it active.
-- [ ] **2.3** Double-clicking a tab → popup with the name editable and a Delete action.
-- [ ] **2.4** Deleting an Area goes through the confirm dialog, then deletes the Area and everything inside it (cascade). Active tab falls back to the first remaining Area, or an empty state if none.
-  - **Acceptance:** deleting an Area with blocks, tasks, and notes in it leaves no orphaned rows.
+- [x] **2.2** "+" button at the end of the tab row → popup with a single name field. Submitting creates the Area and makes it active.
+- [x] **2.3** Double-clicking a tab → popup with the name editable and a Delete action.
+- [x] **2.4** Deleting an Area goes through the confirm dialog, then deletes the Area and everything inside it (cascade). Active tab falls back to the first remaining Area, or an empty state if none.
+  - **Acceptance:** deleting an Area with blocks, tasks, and notes in it leaves no orphaned rows. **Unverified** — this session has no live Supabase project/credentials, and there are no blocks/notes to test the cascade with yet (those start in Phase 3). The client only deletes the `areas` row and relies on the migration's `on delete cascade`; needs confirming against a live project once Blocks/Notes exist.
 
 ---
 
