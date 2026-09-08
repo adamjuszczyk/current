@@ -17,6 +17,6 @@ Fresh, dedicated Supabase project. No shared backend or cross-app data access wi
 ## Status
 Pre-build, planned. `TASKS.md` generated from `CURRENT-V1-SANDBOX-SPEC.md` — data model plus six phases (setup, shared primitives, Areas, Canvas/Blocks, Block popup, Free Notes). No code written yet; Phase 0 is the next thing to start.
 
-Two open decisions in `TASKS.md` want an answer before the phases they block: how the Supabase project is protected given the spec has no auth (recommended: one account with RLS), and whether deleting a non-empty Free Note needs its own confirmed action or is covered by the spec's auto-discard-when-empty rule.
+Both decisions that were open after planning are now resolved and reflected in the spec and `TASKS.md`: Supabase email auth with one account and RLS locking every table to that user, one login screen (Phase 0.3); and Free Notes get their own explicit delete action gated by the confirm dialog, with auto-discard-on-empty-blur covering only a note that was never given real content (Phase 5.4).
 
 Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installed in this build — nothing in the V1 spec needs offline storage, installability, or charts.
