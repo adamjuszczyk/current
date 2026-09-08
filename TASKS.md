@@ -89,16 +89,16 @@ Two things every later phase depends on. Built once, kept plain.
 
 ## Phase 3 — Canvas and Blocks
 
-- [ ] **3.1** Canvas fills the space below the tab row and renders the active Area's blocks at their stored `x`/`y`.
+- [x] **3.1** Canvas fills the space below the tab row and renders the active Area's blocks at their stored `x`/`y`.
   - No zoom, no pan controls — both are explicitly out. Native scroll only, if content runs past the viewport.
-- [ ] **3.2** Blocks are draggable and persist `x`/`y` on drop. Freeform placement, no snapping, no grid, no auto-stacking.
-- [ ] **3.3** "+ Add block" action → popup with a name field and a quick-capture task field: type a line, press Enter, next line, each line becoming a task on creation.
+- [x] **3.2** Blocks are draggable and persist `x`/`y` on drop. Freeform placement, no snapping, no grid, no auto-stacking.
+- [x] **3.3** "+ Add block" action → popup with a name field and a quick-capture task field: type a line, press Enter, next line, each line becoming a task on creation.
   - Tasks are optional here — a block can be created with a name alone.
-- [ ] **3.4** Block status rendering, three states:
+- [x] **3.4** Block status rendering, three states:
   - `active` — full, normal colour.
   - `done` — dimmed/desaturated.
   - `upcoming` — same dimmed treatment as `done`, plus one small coloured marker so the two don't read identically at a glance.
-- [ ] **3.5** New blocks are created at a fixed default position (centre of the visible canvas). The person using it drags them where they want.
+- [x] **3.5** New blocks are created at a fixed default position (centre of the visible canvas). The person using it drags them where they want.
   - This is the minimum needed to give a new block coordinates. It is not an arrangement rule — nothing repositions a block after creation.
 
 ---
