@@ -1,6 +1,6 @@
 # Current — V1 Sandbox — SPEC.md
 
-**Status:** Ready for technical planning. This is deliberately not the full product — see `CURRENT-SPEC.md` for the complete v2+ reference, which stays as the "already thought through, add once real use confirms it" backlog. Nothing here contradicts that document; this is a strict subset of it.
+**Status:** Ready for technical planning. This is deliberately not the full product — a fuller v2+ vision exists, but it's kept outside this repo on purpose, so it can't shape this build. This document is complete and self-contained; nothing else needs to be consulted to build it.
 
 **Why this exists:** rather than build the fully-specced version first, build a genuinely minimal, rough sandbox — "supposed to look and be shit" — and let real daily use reveal what's actually needed before investing in anything more. Visual design is explicitly not part of this pass.
 
@@ -61,4 +61,4 @@ Carried forward unchanged from the full spec — already simple enough that cutt
 
 ## Explicitly not in v1
 
-Vision, Phase (and everything that comes with it — the scrollable timeline, End Phase, Plan Next Phase, the breadcrumb, the "back to current" button), block-to-block connections of any kind (sequencing, branching, merging, blocking, the Waiting status that exists only to support it), sub-Projects/nested steps, project detail as a modal-or-tab with resize/fullscreen, zoom, pan, status filtering, theming, and any visual design pass. All real, all already specced in `CURRENT-SPEC.md`, all deliberately deferred until using this sandbox for real says otherwise.
+Vision, Phase (and everything that comes with it — the scrollable timeline, End Phase, Plan Next Phase, the breadcrumb, the "back to current" button), block-to-block connections of any kind (sequencing, branching, merging, blocking, the Waiting status that exists only to support it), sub-Projects/nested steps, project detail as a modal-or-tab with resize/fullscreen, zoom, pan, status filtering, theming, and any visual design pass. All real, all part of a fuller v2+ vision kept intentionally outside this repo, all deliberately deferred until using this sandbox for real says otherwise.

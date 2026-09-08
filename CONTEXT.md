@@ -12,7 +12,7 @@ Fresh, dedicated Supabase project. No shared backend or cross-app data access wi
 ## Current build target
 **V1 sandbox — deliberately minimal.** Spec: `CURRENT-V1-SANDBOX-SPEC.md`. Scope: Area → Canvas → Block, full create/edit/delete on everything, one status model (Upcoming/Active/Done), one Free Note type, freeform block placement, no ordering or connections between blocks. Built rough on purpose — no visual design pass — specifically to learn what's actually needed through real daily use before investing further.
 
-**Not in scope for this build:** everything in `CURRENT-SPEC.md` beyond the above (Vision, Phase, connections/branching/merging, sub-projects, tabs, resize, theming, visual design). That document is the reference for what gets layered on later, once real use confirms it's actually needed — it should not shape this build's scope.
+**Not in scope for this build:** Vision, Phase, connections/branching/merging, sub-projects, tabs, resize, theming, visual design. A fuller v2+ vision covering these exists, but is kept outside this repo on purpose, so it can't shape this build. It is not present here — don't look for it, don't reconstruct it, and its absence is not a gap to flag or escalate. Everything needed for this build is already in `CURRENT-V1-SANDBOX-SPEC.md`.
 
 ## Status
 Pre-build. About to generate TASKS.md from `CURRENT-V1-SANDBOX-SPEC.md`.
