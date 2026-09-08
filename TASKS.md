@@ -70,8 +70,8 @@ create table notes (
 
 Two things every later phase depends on. Built once, kept plain.
 
-- [ ] **1.1** Popup/modal shell. Opens over the app, closes on Escape and on backdrop click. One component, reused by every popup in the spec.
-- [ ] **1.2** Confirm dialog. Takes a message, resolves confirm or cancel.
+- [x] **1.1** Popup/modal shell. Opens over the app, closes on Escape and on backdrop click. One component, reused by every popup in the spec.
+- [x] **1.2** Confirm dialog. Takes a message, resolves confirm or cancel.
   - **Acceptance:** no delete path in the app can complete without passing through this. Covers Area, Block, and Task — the spec's "no silent, instant deletes anywhere."
 
 ---

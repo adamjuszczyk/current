@@ -15,7 +15,7 @@ Fresh, dedicated Supabase project. No shared backend or cross-app data access wi
 **Not in scope for this build:** Vision, Phase, connections/branching/merging, sub-projects, tabs, resize, theming, visual design. A fuller v2+ vision covering these exists, but is kept outside this repo on purpose, so it can't shape this build. It is not present here — don't look for it, don't reconstruct it, and its absence is not a gap to flag or escalate. Everything needed for this build is already in `CURRENT-V1-SANDBOX-SPEC.md`.
 
 ## Status
-Phase 0 (project setup) is done. Phase 1 (shared primitives — popup shell, confirm dialog) is next.
+Phase 0 (project setup) and Phase 1 (shared primitives) are done. Phase 2 (Areas) is next.
 
 Both decisions that were open after planning are now resolved and reflected in the spec and `TASKS.md`: Supabase email auth with one account and RLS locking every table to that user, one login screen (Phase 0.3); and Free Notes get their own explicit delete action gated by the confirm dialog, with auto-discard-on-empty-blur covering only a note that was never given real content (Phase 5.4).
 
@@ -44,6 +44,13 @@ Nothing in this session had credentials or dashboard access to do any of this �
 5. Run the migration against the project.
 6. Fill in `.env` from `.env.example`.
 7. Run `npm run verify:rls` — confirms the Phase 0.3 acceptance criterion (no session → all four tables return no rows / reject writes) and that email signup is rejected.
+
+### Phase 1 — what was built
+
+- `src/components/Popup.tsx` — the one modal shell every popup in the spec reuses: takes `onClose` and `children`, renders via a `createPortal` to `document.body` over a click-to-close backdrop, closes on Escape, and moves focus into the dialog on open. No `open` prop — callers mount it conditionally.
+- `src/components/confirmContext.ts` + `src/components/ConfirmDialogProvider.tsx` — the confirm dialog, built on `Popup`. `ConfirmDialogProvider` is mounted once at the app root (`src/main.tsx`, inside `QueryClientProvider`) and exposes `useConfirm()`, a hook returning `(message: string) => Promise<boolean>` that any component can call and await — the single gate every future delete path (Area, Block, Task, Note) must go through. Only one confirmation can be pending at a time, which is all the spec needs.
+- Verified in a headless browser (temporary test buttons wired into `App.tsx` for the session, reverted afterward — not part of the committed code): popup opens and grabs focus, closes on Escape, closes on backdrop click, stays open on clicks inside its content; confirm dialog's Cancel/Confirm/Escape all resolve the awaited promise correctly.
+- No new dependencies. No delete paths, Areas, Canvas, Blocks, Tasks, or Notes were built — those start in Phase 2.
 
 ## Escalation criteria
 
