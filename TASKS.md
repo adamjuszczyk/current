@@ -55,6 +55,9 @@ create table notes (
 - [ ] **0.1** Vite + React + TypeScript project at repo root.
 - [ ] **0.2** Tailwind configured. No theme customisation, no design tokens — defaults only. Visual design is explicitly not part of this pass.
 - [ ] **0.3** Supabase client wired to the dedicated project; URL and anon key from `.env` (`.env` gitignored, `.env.example` committed).
+  - Supabase email auth, one account. RLS policies on `areas`, `blocks`, `tasks`, and `notes` restrict every row to that authenticated user — the anon key alone must never be sufficient to read or write real data.
+  - One login screen; no sign-up flow beyond the single account, no OAuth providers, no multi-user support.
+  - **Acceptance:** with RLS enabled and no session, all four tables return no rows and reject writes.
 - [ ] **0.4** TanStack Query provider at the app root.
 - [ ] **0.5** Zustand store for transient UI state only (which popup is open, which area tab is active). No persisted or server data in it.
 
@@ -116,21 +119,18 @@ Double-clicking a Block opens one popup that does everything below.
 
 - [ ] **5.1** "+ Note" action creates an empty note immediately — no popup — placed on the canvas and focused for typing.
 - [ ] **5.2** Note content saves on blur. Notes are draggable and persist `x`/`y`, same as blocks.
-- [ ] **5.3** A note left empty is discarded automatically on blur.
-- [ ] **5.4** Multiple notes per Area. No connections, no ordering.
+- [ ] **5.3** A note left empty is discarded automatically on blur. Covers only a note that was never given real content.
+- [ ] **5.4** A note with real content gets its own explicit delete action, gated by the same confirm dialog as everything else — not deleted indirectly by clearing its text.
+- [ ] **5.5** Multiple notes per Area. No connections, no ordering.
 
 ---
 
 ## Open decisions
 
-Two things the spec doesn't settle. Both need an answer before the phases they affect.
+Both resolved.
 
-1. **Database access (blocks Phase 0.3).** The spec has no auth, no users, no login — consistent with a personal app. But a Supabase project reached from a browser ships its anon key in the bundle, so with no auth and no row-level security the tables are readable and writable by anyone who has the URL. Worth a deliberate choice rather than a default:
-   - **(a)** Supabase email auth, one account, RLS locking every table to that user. Adds one login screen and nothing else to the build.
-   - **(b)** Leave it open for the sandbox period, accepting that the data is exposed.
-   - **Recommended: (a)** — it's small, and it's cheaper now than after there's real daily use in the tables.
-
-2. **Deleting a non-empty note (affects Phase 5).** The spec gives Notes no delete action, and lists only Area, Block, and Task under delete confirmation. Read literally, clearing a note's text empties it and 5.3 discards it — so deletion already exists and needs no separate UI or confirmation step. Planned that way. Flagging it in case a distinct, confirmed note delete was intended.
+1. **Database access.** Supabase email auth, one account, RLS locking every table to that user — see Phase 0.3.
+2. **Deleting a non-empty note.** Its own explicit delete action, gated by the confirm dialog — see Phase 5.4. Auto-discard-on-empty-blur (5.3) still covers only a note that was never given real content.
 
 ---
 

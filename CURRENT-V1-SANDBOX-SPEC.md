@@ -12,14 +12,14 @@ Three things exist. Nothing else.
 
 **Area → Canvas → Block**
 
-No Vision, no Phase, no connections between blocks, no branching or merging, no sequencing, no Waiting status, no tabs, no resize, no theming, no visual design pass. All of that is real and already specced in `CURRENT-SPEC.md` — none of it is v1.
+No Vision, no Phase, no connections between blocks, no branching or merging, no sequencing, no Waiting status, no tabs, no resize, no theming, no visual design pass. A fuller vision covering all of that exists, but is kept intentionally outside this repo — none of it shapes v1.
 
 ---
 
 ## Areas
 
 - **Create:** a "+" button at the end of the area-tabs row opens a popup. Type a name. That's the entire form — nothing else to fill in.
-- **Navigate:** one tab per Area, as before.
+- **Navigate:** one tab per Area.
 - **Edit / Delete:** double-clicking an Area's tab opens a popup where its name can be edited, or the Area deleted.
 - **Delete behavior:** deleting an Area deletes everything inside it — every Block and every Free Note, no exceptions. Requires a confirmation step before it happens (see "Delete confirmation" below).
 
@@ -42,12 +42,19 @@ Only one kind of block exists — no Task-vs-sub-Project distinction, no nesting
 
 ---
 
+## Authentication
+
+One account, Supabase email auth. Row Level Security locks every table (`areas`, `blocks`, `tasks`, `notes`) to that one authenticated user — the anon key alone must never be sufficient to read or write real data. One login screen; nothing more elaborate — no multi-user support, no OAuth providers, no sign-up flow beyond the single account.
+
+---
+
 ## Free Note
 
-Carried forward unchanged from the full spec — already simple enough that cutting it further isn't necessary.
+Simple enough already that cutting it further isn't necessary.
 
 - A dedicated "+ Note" action creates an empty note immediately, focused in place for typing.
-- Left empty, it's discarded automatically.
+- Left empty, it's discarded automatically — this covers only a note that was never given real content.
+- A note with real content gets its own explicit delete action, gated by the same confirmation step as everything else (see "Delete confirmation" below) — not deleted indirectly by clearing its text.
 - Multiple notes allowed per Area.
 - No connections, no ordering — same as Blocks.
 
@@ -55,7 +62,7 @@ Carried forward unchanged from the full spec — already simple enough that cutt
 
 ## Delete confirmation
 
-**Every delete action — Area, Block, or Task — requires an explicit confirmation step before it happens.** No silent, instant deletes anywhere in this app, even in the sandbox.
+**Every delete action — Area, Block, Task, or Note — requires an explicit confirmation step before it happens.** No silent, instant deletes anywhere in this app, even in the sandbox.
 
 ---
 
