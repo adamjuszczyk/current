@@ -118,11 +118,11 @@ Double-clicking a Block opens one popup that does everything below.
 
 ## Phase 5 — Free Notes
 
-- [ ] **5.1** "+ Note" action creates an empty note immediately — no popup — placed on the canvas and focused for typing.
-- [ ] **5.2** Note content saves on blur. Notes are draggable and persist `x`/`y`, same as blocks.
-- [ ] **5.3** A note left empty is discarded automatically on blur. Covers only a note that was never given real content.
-- [ ] **5.4** A note with real content gets its own explicit delete action, gated by the same confirm dialog as everything else — not deleted indirectly by clearing its text.
-- [ ] **5.5** Multiple notes per Area. No connections, no ordering.
+- [x] **5.1** "+ Note" action creates an empty note immediately — no popup — placed on the canvas and focused for typing.
+- [x] **5.2** Note content saves on blur. Notes are draggable and persist `x`/`y`, same as blocks.
+- [x] **5.3** A note left empty is discarded automatically on blur. Covers only a note that was never given real content.
+- [x] **5.4** A note with real content gets its own explicit delete action, gated by the same confirm dialog as everything else — not deleted indirectly by clearing its text.
+- [x] **5.5** Multiple notes per Area. No connections, no ordering.
 
 ---
 

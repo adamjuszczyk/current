@@ -25,3 +25,12 @@ export interface Task {
   completed: boolean
   created_at: string
 }
+
+export interface Note {
+  id: string
+  area_id: string
+  content: string
+  x: number
+  y: number
+  created_at: string
+}
