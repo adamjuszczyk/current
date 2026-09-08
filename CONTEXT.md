@@ -51,6 +51,7 @@ Nothing in this session had credentials or dashboard access to do any of this �
 - `src/components/confirmContext.ts` + `src/components/ConfirmDialogProvider.tsx` — the confirm dialog, built on `Popup`. `ConfirmDialogProvider` is mounted once at the app root (`src/main.tsx`, inside `QueryClientProvider`) and exposes `useConfirm()`, a hook returning `(message: string) => Promise<boolean>` that any component can call and await — the single gate every future delete path (Area, Block, Task, Note) must go through. Only one confirmation can be pending at a time, which is all the spec needs.
 - Verified in a headless browser (temporary test buttons wired into `App.tsx` for the session, reverted afterward — not part of the committed code): popup opens and grabs focus, closes on Escape, closes on backdrop click, stays open on clicks inside its content; confirm dialog's Cancel/Confirm/Escape all resolve the awaited promise correctly.
 - No new dependencies. No delete paths, Areas, Canvas, Blocks, Tasks, or Notes were built — those start in Phase 2.
+- Fixed post-review: Escape now closes only the topmost popup (module-level open-order stack in `Popup.tsx`), and the backdrop only closes on a click where both mousedown and mouseup land on the backdrop itself, not on a drag that starts inside the dialog and releases outside.
 
 ## Escalation criteria
 
