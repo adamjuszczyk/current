@@ -52,14 +52,15 @@ create table notes (
 
 ## Phase 0 — Project setup
 
-- [ ] **0.1** Vite + React + TypeScript project at repo root.
-- [ ] **0.2** Tailwind configured. No theme customisation, no design tokens — defaults only. Visual design is explicitly not part of this pass.
-- [ ] **0.3** Supabase client wired to the dedicated project; URL and anon key from `.env` (`.env` gitignored, `.env.example` committed).
+- [x] **0.1** Vite + React + TypeScript project at repo root.
+- [x] **0.2** Tailwind configured. No theme customisation, no design tokens — defaults only. Visual design is explicitly not part of this pass.
+- [x] **0.3** Supabase client wired to the dedicated project; URL and anon key from `.env` (`.env` gitignored, `.env.example` committed).
   - Supabase email auth, one account. RLS policies on `areas`, `blocks`, `tasks`, and `notes` restrict every row to that authenticated user — the anon key alone must never be sufficient to read or write real data.
   - One login screen; no sign-up flow beyond the single account, no OAuth providers, no multi-user support.
   - **Acceptance:** with RLS enabled and no session, all four tables return no rows and reject writes.
-- [ ] **0.4** TanStack Query provider at the app root.
-- [ ] **0.5** Zustand store for transient UI state only (which popup is open, which area tab is active). No persisted or server data in it.
+  - Code side complete: migration (`supabase/migrations/0001_init.sql`), client, and login screen are all written. The acceptance criterion itself is unverified — it needs a live Supabase project, which this session has no credentials for. `npm run verify:rls` checks it mechanically once Adam provisions the project and fills in `.env`. See `CONTEXT.md`.
+- [x] **0.4** TanStack Query provider at the app root.
+- [x] **0.5** Zustand store for transient UI state only (which popup is open, which area tab is active). No persisted or server data in it.
 
 **Not installed in this build:** Dexie, vite-plugin-pwa, Recharts. The spec has no offline requirement, no installability requirement, and nothing to chart. They stay in the declared stack in `CONTEXT.md` for when something actually needs them — installing and configuring them now would be setup for a version this build is deliberately not planning for.
 
