@@ -1,0 +1,141 @@
+# TASKS.md — Current V1 Sandbox
+
+Generated from `CURRENT-V1-SANDBOX-SPEC.md`. Scoped strictly to that document — nothing here anticipates a later version.
+
+Build order is top to bottom. Each phase leaves the app in a usable state.
+
+---
+
+## Data model
+
+Everything in the spec, nothing more. No ordering columns anywhere (blocks, tasks, and notes are all explicitly unordered). No soft deletes.
+
+```sql
+create table areas (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  created_at timestamptz not null default now()
+);
+
+create table blocks (
+  id         uuid primary key default gen_random_uuid(),
+  area_id    uuid not null references areas(id) on delete cascade,
+  name       text not null,
+  status     text not null default 'upcoming'
+             check (status in ('upcoming', 'active', 'done')),
+  x          double precision not null,
+  y          double precision not null,
+  created_at timestamptz not null default now()
+);
+
+create table tasks (
+  id         uuid primary key default gen_random_uuid(),
+  block_id   uuid not null references blocks(id) on delete cascade,
+  text       text not null,
+  completed  boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table notes (
+  id         uuid primary key default gen_random_uuid(),
+  area_id    uuid not null references areas(id) on delete cascade,
+  content    text not null default '',
+  x          double precision not null,
+  y          double precision not null,
+  created_at timestamptz not null default now()
+);
+```
+
+`on delete cascade` covers both delete rules in the spec: Area → its Blocks and Notes; Block → its Tasks.
+
+---
+
+## Phase 0 — Project setup
+
+- [ ] **0.1** Vite + React + TypeScript project at repo root.
+- [ ] **0.2** Tailwind configured. No theme customisation, no design tokens — defaults only. Visual design is explicitly not part of this pass.
+- [ ] **0.3** Supabase client wired to the dedicated project; URL and anon key from `.env` (`.env` gitignored, `.env.example` committed).
+- [ ] **0.4** TanStack Query provider at the app root.
+- [ ] **0.5** Zustand store for transient UI state only (which popup is open, which area tab is active). No persisted or server data in it.
+
+**Not installed in this build:** Dexie, vite-plugin-pwa, Recharts. The spec has no offline requirement, no installability requirement, and nothing to chart. They stay in the declared stack in `CONTEXT.md` for when something actually needs them — installing and configuring them now would be setup for a version this build is deliberately not planning for.
+
+---
+
+## Phase 1 — Shared primitives
+
+Two things every later phase depends on. Built once, kept plain.
+
+- [ ] **1.1** Popup/modal shell. Opens over the app, closes on Escape and on backdrop click. One component, reused by every popup in the spec.
+- [ ] **1.2** Confirm dialog. Takes a message, resolves confirm or cancel.
+  - **Acceptance:** no delete path in the app can complete without passing through this. Covers Area, Block, and Task — the spec's "no silent, instant deletes anywhere."
+
+---
+
+## Phase 2 — Areas
+
+- [ ] **2.1** Area tab row across the top. One tab per Area, ordered by `created_at`. Clicking a tab makes it the active Area.
+  - No reordering, no drag — the spec doesn't have it.
+- [ ] **2.2** "+" button at the end of the tab row → popup with a single name field. Submitting creates the Area and makes it active.
+- [ ] **2.3** Double-clicking a tab → popup with the name editable and a Delete action.
+- [ ] **2.4** Deleting an Area goes through the confirm dialog, then deletes the Area and everything inside it (cascade). Active tab falls back to the first remaining Area, or an empty state if none.
+  - **Acceptance:** deleting an Area with blocks, tasks, and notes in it leaves no orphaned rows.
+
+---
+
+## Phase 3 — Canvas and Blocks
+
+- [ ] **3.1** Canvas fills the space below the tab row and renders the active Area's blocks at their stored `x`/`y`.
+  - No zoom, no pan controls — both are explicitly out. Native scroll only, if content runs past the viewport.
+- [ ] **3.2** Blocks are draggable and persist `x`/`y` on drop. Freeform placement, no snapping, no grid, no auto-stacking.
+- [ ] **3.3** "+ Add block" action → popup with a name field and a quick-capture task field: type a line, press Enter, next line, each line becoming a task on creation.
+  - Tasks are optional here — a block can be created with a name alone.
+- [ ] **3.4** Block status rendering, three states:
+  - `active` — full, normal colour.
+  - `done` — dimmed/desaturated.
+  - `upcoming` — same dimmed treatment as `done`, plus one small coloured marker so the two don't read identically at a glance.
+- [ ] **3.5** New blocks are created at a fixed default position (centre of the visible canvas). The person using it drags them where they want.
+  - This is the minimum needed to give a new block coordinates. It is not an arrangement rule — nothing repositions a block after creation.
+
+---
+
+## Phase 4 — Block popup
+
+Double-clicking a Block opens one popup that does everything below.
+
+- [ ] **4.1** Block name editable.
+- [ ] **4.2** Status set manually here — Upcoming / Active / Done. No automatic transitions; completing every task does not move a block to Done.
+- [ ] **4.3** Tasks as a flat, unordered list. Add, edit inline, toggle complete, delete individually.
+- [ ] **4.4** Task delete goes through the confirm dialog.
+- [ ] **4.5** Block delete goes through the confirm dialog, then deletes the block and all its tasks (cascade).
+  - **Acceptance:** full CRUD on tasks works without leaving the popup; no task ordering UI exists.
+
+---
+
+## Phase 5 — Free Notes
+
+- [ ] **5.1** "+ Note" action creates an empty note immediately — no popup — placed on the canvas and focused for typing.
+- [ ] **5.2** Note content saves on blur. Notes are draggable and persist `x`/`y`, same as blocks.
+- [ ] **5.3** A note left empty is discarded automatically on blur.
+- [ ] **5.4** Multiple notes per Area. No connections, no ordering.
+
+---
+
+## Open decisions
+
+Two things the spec doesn't settle. Both need an answer before the phases they affect.
+
+1. **Database access (blocks Phase 0.3).** The spec has no auth, no users, no login — consistent with a personal app. But a Supabase project reached from a browser ships its anon key in the bundle, so with no auth and no row-level security the tables are readable and writable by anyone who has the URL. Worth a deliberate choice rather than a default:
+   - **(a)** Supabase email auth, one account, RLS locking every table to that user. Adds one login screen and nothing else to the build.
+   - **(b)** Leave it open for the sandbox period, accepting that the data is exposed.
+   - **Recommended: (a)** — it's small, and it's cheaper now than after there's real daily use in the tables.
+
+2. **Deleting a non-empty note (affects Phase 5).** The spec gives Notes no delete action, and lists only Area, Block, and Task under delete confirmation. Read literally, clearing a note's text empties it and 5.3 discards it — so deletion already exists and needs no separate UI or confirmation step. Planned that way. Flagging it in case a distinct, confirmed note delete was intended.
+
+---
+
+## Out of scope
+
+Not built, not scaffolded for, not designed around: Vision, Phase and everything with it (scrollable timeline, End Phase, Plan Next Phase, breadcrumb, "back to current"), block-to-block connections of any kind (sequencing, branching, merging, blocking, Waiting status), sub-Projects and nested steps, project detail as a modal-or-tab with resize/fullscreen, zoom, pan, status filtering, theming, and any visual design pass.
+
+No schema columns, abstraction layers, or component seams exist in anticipation of these. When one of them is actually wanted, it gets built then, against what real use of this sandbox has shown.
