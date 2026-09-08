@@ -3,6 +3,21 @@
 -- Run this against the dedicated Supabase project (SQL editor, or
 -- `supabase db push` once the project is linked). It is not applied
 -- automatically by this repo.
+--
+-- ============================================================
+-- STOP — READ BEFORE RUNNING
+--
+-- The RLS policies below are pinned to the sentinel UUID
+-- '00000000-0000-0000-0000-000000000000'. You MUST replace every
+-- occurrence of that sentinel with the real UUID of the single
+-- account this app is for (Supabase dashboard → Authentication →
+-- Users, after creating that account) before running this file.
+--
+-- The sentinel matches no real Supabase user, so if you forget to
+-- replace it, every policy below denies every row to everyone —
+-- the migration fails CLOSED, not open. Safe to forget; useless
+-- until fixed.
+-- ============================================================
 
 create table areas (
   id         uuid primary key default gen_random_uuid(),
@@ -39,32 +54,35 @@ create table notes (
 );
 
 -- Row Level Security: single-account app, no user_id column on any table.
--- Every table is locked to "signed in at all" — since only one account
--- can ever authenticate against this project, an authenticated session
--- and "that user" are the same thing. No session (anon key alone) means
--- auth.uid() is null, so every policy below denies the row.
+-- Every policy is pinned to the one owner's UID (see the sentinel warning
+-- at the top of this file) rather than to "signed in at all" — email
+-- signups being open by default plus the anon key shipping in the client
+-- bundle would otherwise let any stranger who signs themselves up read
+-- and write every row. Pinning the UID, combined with disabling email
+-- signups in the dashboard so no second account can ever exist, is what
+-- actually restricts access to that one user.
 
 alter table areas  enable row level security;
 alter table blocks enable row level security;
 alter table tasks  enable row level security;
 alter table notes  enable row level security;
 
-create policy "authenticated user only" on areas
+create policy "owner only" on areas
   for all
-  using (auth.uid() is not null)
-  with check (auth.uid() is not null);
+  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
+  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');
 
-create policy "authenticated user only" on blocks
+create policy "owner only" on blocks
   for all
-  using (auth.uid() is not null)
-  with check (auth.uid() is not null);
+  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
+  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');
 
-create policy "authenticated user only" on tasks
+create policy "owner only" on tasks
   for all
-  using (auth.uid() is not null)
-  with check (auth.uid() is not null);
+  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
+  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');
 
-create policy "authenticated user only" on notes
+create policy "owner only" on notes
   for all
-  using (auth.uid() is not null)
-  with check (auth.uid() is not null);
+  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
+  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');

@@ -1,5 +1,7 @@
 // Confirms Phase 0.3's acceptance criterion against the live project:
-// with no session, all four tables return no rows and reject writes.
+// with no session, all four tables return no rows and reject writes, and
+// email signup (which would let a stranger create a second account and
+// pass the "signed in" policy) is rejected.
 //
 // Usage: npm run verify:rls   (reads VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY from .env)
 
@@ -44,9 +46,24 @@ for (const [table, row] of Object.entries(writeProbes)) {
   }
 }
 
+const throwawayEmail = `rls-probe-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`
+const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+  email: throwawayEmail,
+  password: 'rls-probe-password-1',
+})
+
+if (signUpError) {
+  console.log(`signup: rejected (${signUpError.message})`)
+} else if (signUpData.user) {
+  console.log('signup: FAIL — email signup succeeded; a stranger can create a second account')
+  ok = false
+} else {
+  console.log('signup: rejected (no user returned)')
+}
+
 if (!ok) {
-  console.error('\nRLS verification FAILED — see above.')
+  console.error('\nRLS verification FAILED — see above for which condition failed (unauthenticated read/write, or email signup not disabled).')
   process.exit(1)
 }
 
-console.log('\nRLS verification passed: no session, no reads, no writes.')
+console.log('\nRLS verification passed: no session means no reads/writes, and email signup is disabled.')

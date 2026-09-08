@@ -26,7 +26,7 @@ Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installe
 - Vite + React 19 + TypeScript project scaffolded at repo root (`npm create vite@latest`'s current `react-ts` template — oxlint for linting, TS project references). `npm run dev`, `npm run build`, `npm run lint` all work.
 - Tailwind v4 wired via `@tailwindcss/vite` — no `tailwind.config.js`, no theme customisation, just `@import "tailwindcss";` in `src/index.css`. Defaults only, per spec.
 - Supabase client at `src/lib/supabase.ts`, reading `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` from `.env` (throws loudly if unset). `.env` is gitignored; `.env.example` is committed with empty values.
-- Schema + RLS migration at `supabase/migrations/0001_init.sql` — the four tables from the data model above, plus RLS enabled on all of them with one `for all using (auth.uid() is not null) with check (auth.uid() is not null)` policy per table. No `user_id` column anywhere: since only one account can ever authenticate against this project, "authenticated" and "that one user" are the same condition, so the policy needs nothing more. This satisfies the schema exactly as specified in `TASKS.md` ("no schema columns... in anticipation of" things out of scope) while still locking every row to that one user.
+- Schema + RLS migration at `supabase/migrations/0001_init.sql` — the four tables from the data model above, plus RLS enabled on all of them with one `for all using (auth.uid() = '<owner UUID>') with check (auth.uid() = '<owner UUID>')` policy per table, pinned to a sentinel UUID that must be replaced with the real account's UUID before running (loud comment at the top of the file explains this; the sentinel matches no real user, so an unreplaced file fails closed). No `user_id` column anywhere — the policy compares `auth.uid()` directly instead. Pinning to a specific UID matters because Supabase allows email signups by default and the anon key ships publicly in the client bundle: a policy that only checked "is someone signed in" would let any stranger who signs themselves up read and write every row. The other half of the fix — disabling email signups in the dashboard so no second account can ever exist — has to happen outside this repo; see "Manual step still needed" below.
 - `src/App.tsx` gates on `supabase.auth.getSession()`/`onAuthStateChange`: no session renders `src/auth/LoginScreen.tsx` (email + password via `signInWithPassword`, no sign-up form — the one account is created out-of-band in Supabase, not through this UI); a session renders a bare "Signed in as … / Sign out" placeholder, since the actual Area/Canvas UI starts in later phases.
 - TanStack Query's `QueryClientProvider` wraps the app in `src/main.tsx` (`src/lib/queryClient.ts`).
 - Zustand store at `src/store/uiStore.ts` holds only `activeAreaId` and which popup is open (`activePopup`/`popupContext`) — no server or persisted data, per spec.
@@ -35,7 +35,15 @@ Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installe
 
 ### Manual step still needed (outside this repo, outside what I have access to)
 
-The Supabase project itself — its creation, running `supabase/migrations/0001_init.sql` against it, creating the single auth user, and populating a real `.env` from `.env.example` — has to happen in the Supabase dashboard/CLI by Adam; nothing in this session had credentials or dashboard access to do it. Once that's done, `npm run verify:rls` confirms the Phase 0.3 acceptance criterion (no session → all four tables return no rows / reject writes) against the real project.
+Nothing in this session had credentials or dashboard access to do any of this — it has to happen in the Supabase dashboard/CLI, in order, by Adam:
+
+1. Create the Supabase project.
+2. Disable email signups in Auth settings — without this, anyone can self-register and pass the "signed in" half of RLS.
+3. Create the single account.
+4. Copy that account's UUID into `supabase/migrations/0001_init.sql`, replacing the sentinel `00000000-0000-0000-0000-000000000000` in every policy.
+5. Run the migration against the project.
+6. Fill in `.env` from `.env.example`.
+7. Run `npm run verify:rls` — confirms the Phase 0.3 acceptance criterion (no session → all four tables return no rows / reject writes) and that email signup is rejected.
 
 ## Escalation criteria
 
