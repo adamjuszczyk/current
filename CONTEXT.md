@@ -15,7 +15,9 @@ Fresh, dedicated Supabase project. No shared backend or cross-app data access wi
 **Not in scope for this build:** Vision, Phase, connections/branching/merging, sub-projects, tabs, resize, theming, visual design. A fuller v2+ vision covering these exists, but is kept outside this repo on purpose, so it can't shape this build. It is not present here — don't look for it, don't reconstruct it, and its absence is not a gap to flag or escalate. Everything needed for this build is already in `CURRENT-V1-SANDBOX-SPEC.md`.
 
 ## Status
-Phase 0 (project setup), Phase 1 (shared primitives), Phase 2 (Areas), Phase 3 (Canvas and Blocks), Phase 4 (Block popup), and Phase 5 (Free Notes) are done. This was the last phase of the V1 sandbox.
+**Complete and verified — 2026-09-09.** All six phases are built, all 26 items in `TASKS.md` are done, and both acceptance criteria have been met against the live Supabase project: 0.3's RLS check by `npm run verify:rls`, and 2.4's cascade delete by Adam in the running app. Login, Areas, Canvas, Blocks, Tasks and Free Notes all work end to end.
+
+Nothing further is planned for this build. **The next step is not code — it is using it.** The sandbox exists to find out, through real daily use, what is actually needed; that evidence is what should shape whatever comes next, not a fresh round of planning against the same spec.
 
 Both decisions that were open after planning are now resolved and reflected in the spec and `TASKS.md`: Supabase email auth with one account and RLS locking every table to that user, one login screen (Phase 0.3); and Free Notes get their own explicit delete action gated by the confirm dialog, with auto-discard-on-empty-blur covering only a note that was never given real content (Phase 5.4).
 
@@ -36,12 +38,12 @@ Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installe
 ### Provisioning
 
 1. ~~Create the Supabase project.~~ Done — ref `ieszecmiijxkcrxirwuk`.
-2. ~~Disable email signups in Auth settings.~~ Done, and confirmed in the dashboard directly rather than inferred from `verify:rls` — which matters, because that script treats *any* `signUp()` error as "signups disabled" and would report a false pass.
+2. ~~Disable email signups in Auth settings.~~ Done, and confirmed in the dashboard directly as well as by `verify:rls`.
 3. ~~Create the single account.~~ Done.
 4. ~~Substitute the real owner UUID into `supabase/migrations/0001_init.sql`.~~ Done — all eight policy occurrences (four policies, each with a `using` and a `with check`), not the four a quick read suggests.
-5. **Run the migration against the project.** Adam, via the SQL editor. No session here has, or should have, DDL access: the anon key cannot run DDL by design, and the alternatives (the postgres connection string, or a Supabase CLI personal access token) are both far broader than a one-time task warrants.
+5. ~~Run the migration against the project.~~ Done by Adam via the SQL editor. No session here has, or should have, DDL access: the anon key cannot run DDL by design, and the alternatives (the postgres connection string, or a Supabase CLI personal access token) are both far broader than a one-time task warrants.
 6. ~~Fill in `.env`.~~ Done in this container. `.env` is gitignored and the container is ephemeral, so anyone running the app elsewhere needs their own copy — URL and anon key are in the Supabase dashboard.
-7. **Run `npm run verify:rls`** once the migration is applied. This one the reviewer can do: it needs only the URL and anon key.
+7. ~~Run `npm run verify:rls`.~~ Passed. In this container it needs `NODE_USE_ENV_PROXY=1`, because Node 22 does not read `HTTPS_PROXY` for `fetch` and otherwise egresses past the proxy the allowlist applies to.
 
 ### Phase 1 — what was built
 
@@ -173,3 +175,20 @@ Running record of chunk hand-offs and escalations. One entry per event, newest l
   **"No areas yet" now means exactly that.** Loading, failed, and genuinely empty are three separate states. A failed load says so, shows the reason, states plainly that nothing has been lost, and offers a retry. `AreaTabs` no longer runs its active-tab fallback unless the load actually succeeded — previously a dropped connection silently cleared the active tab. The same trap existed on the canvas, where failed block or note loads rendered as an empty area, so that surfaces too; strictly an extension of what was asked, and easily reverted if unwanted.
   **Two bugs found by driving it that reading would not have caught.** First, the banner rendered `Couldn't save: [object Object]` — Supabase errors are plain `{code, message, details, hint}` objects, not `Error` instances, so `String(error)` is useless on them. A visible but meaningless message is barely better than a silent failure, which was the entire point. `src/lib/errorMessage.ts` now handles both shapes; the banner reads `new row violates row-level security policy for table "areas" (42501)`. Second, a failed note delete left `deletingRef` stuck true, which makes every later blur skip `commitOnBlur` and silently stop saving that note — a bug only reachable once failures were surfaced at all.
   Verified in a browser against forced 500s and 403s: ten checks, all passing. Note that the failure state appears after TanStack Query's default retries rather than instantly — roughly seven seconds of "Loading areas…" first, which is the right trade for a blip that heals itself.
+
+---
+
+* **2026-09-09 — BUILD COMPLETE AND VERIFIED. This closes the V1 sandbox build.**
+  Adam confirmed the app working end to end against the live project — login, and the 2.4 cascade-delete test run by hand. With 0.3 already verified by `verify:rls`, **every acceptance criterion in `TASKS.md` is now met**, not merely coded. All six phases, all 26 items.
+  **What review actually caught**, across eleven builder sessions and roughly $17.50:
+  * *RLS granted access to any authenticated user, not the owner.* With signups open by default and the anon key public in the client bundle, a stranger could have self-registered into the data. Now pinned to the owner UID, with signups off as the second layer.
+  * *Escape closed every stacked popup.* Would have discarded the Area edit popup on every cancelled delete.
+  * *The backdrop closed on a drag that merely ended outside it* — select text in a field, release past the edge, lose the input.
+  * *The `upcoming` status marker rendered grey*, a parent CSS filter desaturating it, making Upcoming and Done identical at a glance. Found only by screenshotting and looking.
+  * Two efficiency fixes: every click on a block was writing to the database, which Phase 4's double-click would have doubled.
+  **And two verification bugs — checks that reported success while proving nothing.** These matter more than the defects, because they are what makes a build *look* finished.
+  * `verify:rls` counted every error as a rejection, so it printed "RLS verification passed" while an egress allowlist blocked the host and not one request left the container. It is now three-valued: only a PostgREST error code, or a 4xx from the auth layer, counts as a refusal; anything else is `UNREACHABLE` and exits 2 saying plainly that nothing was proved.
+  * Every per-phase `npm run build` ran without a real `.env`, which makes Vite fold the env vars to `undefined`, `supabase.ts` throw unconditionally, and the minifier tree-shake the entire Supabase client out as dead code — 201 kB instead of 460 kB. Those builds proved the TypeScript compiled; they never proved the app bundles with a real client.
+  **The lesson worth carrying forward:** a clean diff, a green build and a ticked checkbox are all compatible with a broken feature. Three of the four defects were invisible in review and visible in a browser. Build it, run it, and look at it.
+  **Error-handling defaults are in place**, closing the two spec gaps: failed writes surface in a dismissible banner naming the real cause, and loading, failed and genuinely empty are three distinct states, so "No areas yet" only ever means zero areas exist.
+  Repository state: `main` is the only branch and carries everything; the eleven build branches are deleted. Nothing is outstanding.
