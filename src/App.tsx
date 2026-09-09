@@ -4,6 +4,7 @@ import { LoginScreen } from './auth/LoginScreen'
 import { AreaTabs } from './components/AreaTabs'
 import { Canvas } from './components/Canvas'
 import { useAreas } from './lib/areas'
+import { errorMessage } from './lib/errorMessage'
 import { supabase } from './lib/supabase'
 import { useUIStore } from './store/uiStore'
 
@@ -40,7 +41,7 @@ function App() {
 // Area tab row plus the Canvas for the active Area below it (empty state
 // when there are no Areas at all, per 2.4's fallback).
 function Workspace({ email }: { email: string }) {
-  const { data: areas = [] } = useAreas()
+  const { data: areas = [], isPending, isError, error, refetch } = useAreas()
   const activeAreaId = useUIStore((s) => s.activeAreaId)
   const activeArea = areas.find((area) => area.id === activeAreaId)
 
@@ -55,7 +56,20 @@ function Workspace({ email }: { email: string }) {
           </button>
         </div>
       </div>
-      {areas.length === 0 ? (
+      {isPending ? (
+        <p className="p-4 text-gray-500">Loading areas…</p>
+      ) : isError ? (
+        <div className="p-4 text-red-700">
+          <p className="font-medium">Couldn&apos;t load your areas.</p>
+          <p className="text-sm">{errorMessage(error)}</p>
+          <p className="mt-1 text-sm text-gray-600">
+            This is a loading failure, not an empty account — nothing has been lost.
+          </p>
+          <button type="button" onClick={() => void refetch()} className="mt-2 border px-2 py-1 text-sm text-black">
+            Try again
+          </button>
+        </div>
+      ) : areas.length === 0 ? (
         <p className="p-4 text-gray-500">No areas yet — create one above to get started.</p>
       ) : (
         activeArea && <Canvas areaId={activeArea.id} />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useCreateBlock } from '../lib/blocks'
+import { settled } from '../lib/settled'
 import { Popup } from './Popup'
 
 // Opened by "+ Add block" (3.3). Name field plus a quick-capture textarea —
@@ -28,7 +29,10 @@ export function BlockCreatePopup({
       .map((line) => line.trim())
       .filter((line) => line.length > 0)
 
-    await createBlock.mutateAsync({ areaId, name: trimmed, x: position.x, y: position.y, taskTexts })
+    const created = await settled(
+      createBlock.mutateAsync({ areaId, name: trimmed, x: position.x, y: position.y, taskTexts }),
+    )
+    if (!created.ok) return
     onClose()
   }
 

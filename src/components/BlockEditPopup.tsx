@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { useBlocks, useDeleteBlock, useUpdateBlock } from '../lib/blocks'
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '../lib/tasks'
+import { settled } from '../lib/settled'
 import type { BlockStatus, Task } from '../types'
 import { useConfirm } from './confirmContext'
 import { Popup } from './Popup'
@@ -60,20 +61,20 @@ export function BlockEditPopup({
     event.preventDefault()
     const trimmed = newTaskText.trim()
     if (!trimmed) return
-    await createTask.mutateAsync({ blockId, text: trimmed })
+    if (!(await settled(createTask.mutateAsync({ blockId, text: trimmed }))).ok) return
     setNewTaskText('')
   }
 
   async function handleDeleteTask(task: Task) {
     const confirmed = await confirm(`Delete task "${task.text}"?`)
     if (!confirmed) return
-    await deleteTask.mutateAsync({ id: task.id, blockId })
+    await settled(deleteTask.mutateAsync({ id: task.id, blockId }))
   }
 
   async function handleDeleteBlock() {
     const confirmed = await confirm(`Delete "${blockName}" and all its tasks? This can't be undone.`)
     if (!confirmed) return
-    await deleteBlock.mutateAsync({ id: blockId, areaId })
+    if (!(await settled(deleteBlock.mutateAsync({ id: blockId, areaId }))).ok) return
     onClose()
   }
 

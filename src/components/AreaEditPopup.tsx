@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAreas, useDeleteArea, useUpdateArea } from '../lib/areas'
+import { settled } from '../lib/settled'
 import { useConfirm } from './confirmContext'
 import { Popup } from './Popup'
 
@@ -23,7 +24,7 @@ export function AreaEditPopup({ areaId, onClose }: { areaId: string; onClose: ()
     const trimmed = name.trim()
     if (!trimmed) return
 
-    await updateArea.mutateAsync({ id: areaId, name: trimmed })
+    if (!(await settled(updateArea.mutateAsync({ id: areaId, name: trimmed }))).ok) return
     onClose()
   }
 
@@ -31,7 +32,7 @@ export function AreaEditPopup({ areaId, onClose }: { areaId: string; onClose: ()
     const confirmed = await confirm(`Delete "${areaName}" and everything inside it? This can't be undone.`)
     if (!confirmed) return
 
-    await deleteArea.mutateAsync(areaId)
+    if (!(await settled(deleteArea.mutateAsync(areaId))).ok) return
     onClose()
   }
 

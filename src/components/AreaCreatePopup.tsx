@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { useCreateArea } from '../lib/areas'
+import { settled } from '../lib/settled'
 import { useUIStore } from '../store/uiStore'
 import { Popup } from './Popup'
 
@@ -16,8 +17,9 @@ export function AreaCreatePopup({ onClose }: { onClose: () => void }) {
     const trimmed = name.trim()
     if (!trimmed) return
 
-    const area = await createArea.mutateAsync(trimmed)
-    setActiveAreaId(area.id)
+    const created = await settled(createArea.mutateAsync(trimmed))
+    if (!created.ok) return
+    setActiveAreaId(created.value.id)
     onClose()
   }
 

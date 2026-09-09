@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
 import { useDeleteNote, useUpdateNoteContent, useUpdateNotePosition } from '../lib/notes'
+import { settled } from '../lib/settled'
 import type { Note } from '../types'
 import { useConfirm } from './confirmContext'
 
@@ -98,7 +99,11 @@ export function NoteCard({ note, autoFocus }: { note: Note; autoFocus: boolean }
       commitOnBlur()
       return
     }
-    await deleteNote.mutateAsync({ id: note.id, areaId: note.area_id })
+    if (!(await settled(deleteNote.mutateAsync({ id: note.id, areaId: note.area_id }))).ok) {
+      // Leaving this stuck true would make every later blur skip
+      // commitOnBlur, silently dropping edits to a note that still exists.
+      deletingRef.current = false
+    }
   }
 
   return (

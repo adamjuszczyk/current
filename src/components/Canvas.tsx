@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { useBlocks } from '../lib/blocks'
 import { useCreateNote, useNotes } from '../lib/notes'
+import { settled } from '../lib/settled'
 import { useUIStore } from '../store/uiStore'
 import { BlockCard } from './BlockCard'
 import { BlockCreatePopup } from './BlockCreatePopup'
@@ -31,8 +32,8 @@ function isPosition(value: unknown): value is { x: number; y: number } {
 // container below just scrolls natively if blocks land past the viewport.
 export function Canvas({ areaId }: { areaId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const { data: blocks = [] } = useBlocks(areaId)
-  const { data: notes = [] } = useNotes(areaId)
+  const { data: blocks = [], isError: blocksFailed } = useBlocks(areaId)
+  const { data: notes = [], isError: notesFailed } = useNotes(areaId)
   const createNote = useCreateNote()
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null)
   const activePopup = useUIStore((s) => s.activePopup)
@@ -61,8 +62,9 @@ export function Canvas({ areaId }: { areaId: string }) {
           y: el.scrollTop + el.clientHeight / 2 - NEW_NOTE_HALF_HEIGHT,
         }
       : { x: 0, y: 0 }
-    const note = await createNote.mutateAsync({ areaId, ...position })
-    setFocusNoteId(note.id)
+    const created = await settled(createNote.mutateAsync({ areaId, ...position }))
+    if (!created.ok) return
+    setFocusNoteId(created.value.id)
   }
 
   return (
@@ -75,6 +77,13 @@ export function Canvas({ areaId }: { areaId: string }) {
           + Note
         </button>
       </div>
+
+      {(blocksFailed || notesFailed) && (
+        <p role="alert" className="border-b bg-red-100 px-4 py-2 text-sm text-red-900">
+          Couldn&apos;t load this area&apos;s {blocksFailed && notesFailed ? 'blocks or notes' : blocksFailed ? 'blocks' : 'notes'}.
+          The canvas below is incomplete — it is not empty.
+        </p>
+      )}
 
       <div ref={scrollRef} className="relative flex-1 overflow-auto">
         {blocks.map((block) => (
