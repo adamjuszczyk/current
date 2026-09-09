@@ -33,17 +33,15 @@ Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installe
 - `scripts/verify-rls.mjs` (`npm run verify:rls`) exercises the Phase 0.3 acceptance criterion directly against the live project once `.env` is filled in: reads and writes all four tables with the anon key and no session, and fails loudly if any row is returned or any write succeeds.
 - Verified locally: `npm run build` (tsc -b + vite build) and `npm run lint` (oxlint) both pass clean. Rendered the login screen in a headless browser against placeholder Supabase env vars to confirm the auth-gated shell and Tailwind styling actually render — no console errors, no crash.
 
-### Manual step still needed (outside this repo, outside what I have access to)
+### Provisioning
 
-Nothing in this session had credentials or dashboard access to do any of this — it has to happen in the Supabase dashboard/CLI, in order, by Adam:
-
-1. Create the Supabase project.
-2. Disable email signups in Auth settings — without this, anyone can self-register and pass the "signed in" half of RLS.
-3. Create the single account.
-4. Copy that account's UUID into `supabase/migrations/0001_init.sql`, replacing the sentinel `00000000-0000-0000-0000-000000000000` in every policy.
-5. Run the migration against the project.
-6. Fill in `.env` from `.env.example`.
-7. Run `npm run verify:rls` — confirms the Phase 0.3 acceptance criterion (no session → all four tables return no rows / reject writes) and that email signup is rejected.
+1. ~~Create the Supabase project.~~ Done — ref `ieszecmiijxkcrxirwuk`.
+2. ~~Disable email signups in Auth settings.~~ Done, and confirmed in the dashboard directly rather than inferred from `verify:rls` — which matters, because that script treats *any* `signUp()` error as "signups disabled" and would report a false pass.
+3. ~~Create the single account.~~ Done.
+4. ~~Substitute the real owner UUID into `supabase/migrations/0001_init.sql`.~~ Done — all eight policy occurrences (four policies, each with a `using` and a `with check`), not the four a quick read suggests.
+5. **Run the migration against the project.** Adam, via the SQL editor. No session here has, or should have, DDL access: the anon key cannot run DDL by design, and the alternatives (the postgres connection string, or a Supabase CLI personal access token) are both far broader than a one-time task warrants.
+6. ~~Fill in `.env`.~~ Done in this container. `.env` is gitignored and the container is ephemeral, so anyone running the app elsewhere needs their own copy — URL and anon key are in the Supabase dashboard.
+7. **Run `npm run verify:rls`** once the migration is applied. This one the reviewer can do: it needs only the URL and anon key.
 
 ### Phase 1 — what was built
 
@@ -163,3 +161,6 @@ Running record of chunk hand-offs and escalations. One entry per event, newest l
 * **2026-09-09 — Branches consolidated into `main`.** The ten build branches turned out to be a clean linear chain — `claude/phase5-notes` already contained every one of them — so consolidation was one real merge, not eleven: `main` from `claude/phase5-notes`, then the reviewer branch merged in for its Build log. CONTEXT.md auto-merged without conflict, keeping both the per-phase "what was built" sections and this log.
   Sanity-checked rather than re-tested: all 26 TASKS.md items still ticked, all 25 expected source artifacts present, and the four review fixes verified still in place — RLS pinned to the sentinel, no `grayscale` in `BlockCard`, `popupStack` in `Popup`, `hadContentRef` in `NoteCard`, and the signup probe in `verify-rls.mjs`. `npm ci`, `npm run build` and `npm run lint` all clean on the merged tree.
   `main` is not yet the repository's default branch — that is a GitHub setting, and the tools available here cannot change it. The old default, `claude/affectionate-fermi-3bfmof`, still holds docs only.
+* **2026-09-09 — Provisioning values applied.** Owner UUID substituted into all eight policy occurrences in `supabase/migrations/0001_init.sql`, and the file's "STOP — READ BEFORE RUNNING" header rewritten, since it instructed the reader to replace a sentinel that is no longer there. `.env` written locally with the project URL and anon key (gitignored, so not committed). The anon key was checked before use: its JWT decodes to `ref: ieszecmiijxkcrxirwuk` and `role: anon`, matching the project. The migration is Adam's to run — see Provisioning above.
+  **A caveat on every earlier "build passes" in this log.** Those builds ran without a real `.env`. With the env vars missing, Vite folds `import.meta.env.VITE_SUPABASE_URL` to `undefined`, `src/lib/supabase.ts` throws unconditionally, and the minifier tree-shakes the entire Supabase client out as dead code — 201 kB of bundle instead of 460 kB, with `GoTrueClient` and `RealtimeClient` absent. So those builds proved the TypeScript compiled (`tsc -b` type-checks the real code first) but never proved the app bundles with a real client. The browser behaviour tests are unaffected — `vite dev` neither minifies nor tree-shakes, so real code paths executed there, and Phase 5's checks drove real mutations through an intercepted PostgREST. The build run after `.env` was written is the first to exercise the production path, and it passed.
+  **Branch cleanup could not be completed.** All eleven old branches are fully contained in `main`, but ref deletion returns HTTP 403 through this session's git credentials, and the GitHub tools available here have no delete-branch operation. Left for Adam.

@@ -5,18 +5,21 @@
 -- automatically by this repo.
 --
 -- ============================================================
--- STOP — READ BEFORE RUNNING
+-- The RLS policies below are pinned to the real owner UUID of the
+-- single account this app is for. The placeholder sentinel that
+-- shipped with this file has been substituted — there is nothing
+-- left to fill in.
 --
--- The RLS policies below are pinned to the sentinel UUID
--- '00000000-0000-0000-0000-000000000000'. You MUST replace every
--- occurrence of that sentinel with the real UUID of the single
--- account this app is for (Supabase dashboard → Authentication →
--- Users, after creating that account) before running this file.
+-- If this project is ever rebuilt against a different Supabase
+-- project or a different account, every occurrence of the UUID in
+-- the policies below must be replaced with that account's UUID
+-- (Supabase dashboard → Authentication → Users). A UUID matching
+-- no real user denies every row to everyone: this fails CLOSED,
+-- never open.
 --
--- The sentinel matches no real Supabase user, so if you forget to
--- replace it, every policy below denies every row to everyone —
--- the migration fails CLOSED, not open. Safe to forget; useless
--- until fixed.
+-- Pinning the UUID is only half the protection. The other half is
+-- "Allow new users to signup" being off in Auth settings, so no
+-- second account can exist to be pinned against.
 -- ============================================================
 
 create table areas (
@@ -69,20 +72,20 @@ alter table notes  enable row level security;
 
 create policy "owner only" on areas
   for all
-  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
-  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');
+  using (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676')
+  with check (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676');
 
 create policy "owner only" on blocks
   for all
-  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
-  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');
+  using (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676')
+  with check (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676');
 
 create policy "owner only" on tasks
   for all
-  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
-  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');
+  using (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676')
+  with check (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676');
 
 create policy "owner only" on notes
   for all
-  using (auth.uid() = '00000000-0000-0000-0000-000000000000')
-  with check (auth.uid() = '00000000-0000-0000-0000-000000000000');
+  using (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676')
+  with check (auth.uid() = 'ceb87b61-c057-4fa9-a192-5ca046a01676');
