@@ -159,9 +159,12 @@ Needs Phase 3: the task picker picks tasks, and tasks now live in Lists.
 - [ ] **4.1** Waiting entries on a block, multiple at once, available on Active projects.
   - There is no separate "mark as Waiting" step and no Waiting flag. A project is Waiting exactly while it holds at least one entry — adding the first is what turns it on, deleting the last is what turns it off. This follows directly from "Entries, not one field."
 - [ ] **4.2** Two entry types, chosen per entry: free-typed text, or one or more picked tasks. One entry can hold several picked tasks, and resolves only when every one of them is Done.
-- [ ] **4.3** The picker never offers the project's own tasks. See Open decision 1 for which other projects it does offer.
+- [ ] **4.3** The picker offers tasks from other projects **in the same Area only** — never the project's own tasks, and never another Area's.
+  - Resolved by Adam, closing what was the last open decision. Waiting now matches Connect's explicit "within the same Area — not across Areas" (6.1); the spec's silence on the point was an omission, not a deliberate contrast.
+  - Consequence worth stating, since it is the reason the restriction is cheap: a pick and the task it points at always live in the same Area, so the picker's candidate query is scoped by the Area already loaded for the canvas, and no cross-Area read is needed to render a Waiting card.
 - [ ] **4.4** Ready, derived on read and never stored: the project holds at least one entry, every entry is a picked-task entry holding at least one pick, and every picked task across every entry is Done. A single free-text entry anywhere on the project means Ready can never be reached automatically — free text is cleared by hand, like any note or task.
-  - Both "at least one" clauses are load-bearing, and both guard against a vacuous truth rather than a hypothetical. Without the first, a project with no entries at all would read as Ready. Without the second, so would a project whose only entry lost its last pick — which is a state the database really does produce: deleting a task cascades away the pick but leaves the entry standing (verified). 3.5 has the client tidy that entry up automatically, as part of that task's own delete flow, but Ready must not depend on the tidy-up having happened, since the task can be deleted from another Area entirely.
+  - Both "at least one" clauses are load-bearing, and both guard against a vacuous truth rather than a hypothetical. Without the first, a project with no entries at all would read as Ready. Without the second, so would a project whose only entry lost its last pick — which is a state the database really does produce: deleting a task cascades away the pick but leaves the entry standing (verified). 3.5 has the client tidy that entry up automatically, as part of that task's own delete flow, but Ready must not depend on the tidy-up having happened.
+    - *That reason changed when 4.3 was resolved, but the rule did not.* It used to rest on the task being deletable from another Area entirely; with the picker confined to one Area, that particular route is gone. The clause stays because the tidy-up is client-side and therefore not guaranteed: the delete can fail (v1 built the error banner precisely because writes do fail), the client can be stale, and a row can be removed outside the app altogether through the Supabase dashboard. Ready is derived on read, so it has to be correct against whatever the database actually holds, not against an assumption that the client got to tidy up first.
 - [ ] **4.5** A project cannot leave Active — to either Upcoming or Done — while it is genuinely Waiting: holding at least one entry that hasn't reached the Ready state defined in 4.4. It must reach Ready first before a status change off Active is allowed.
   - A project holding zero Waiting entries is never Waiting in the first place (per 4.1), so this gates nothing for it — same as today.
   - This resolves what was Open decision 1 in the previous plan. It replaces that decision's default outright, rather than extending it: a project no longer leaves Active with entries hidden behind it, waiting to reappear — it simply cannot leave while genuinely blocked. What becomes of a project's (now-Ready) entries once it does leave Active is unchanged from how Waiting already behaves elsewhere; nothing here clears or hides them.
@@ -228,10 +231,13 @@ Last, because it needs every kind of content to exist before "holding anything" 
 
 ## Open decisions
 
-One, narrow, not blocking — it has a working default so the build can proceed if the answer comes late. The other two from the planning session are now resolved and folded into the phases they belong to rather than living here: leaving Active while genuinely Waiting is gated in 4.5, and a picked task being deleted from the project that owns it is handled at the point of that deletion in 3.5.
+**None. All three are resolved and folded into the phases they govern**, rather than living here as defaults:
 
-1. **Whether the task picker reaches across Areas.** Connect says "within the same Area — not across Areas" explicitly. Waiting says only "other projects" and does not restrict it.
-   *Default taken:* the plain reading — any other project in any Area. Flagged because the contrast may be deliberate or may be an omission, and it is a one-word answer either way.
+- Leaving Active while genuinely Waiting is gated in **4.5**.
+- A picked task deleted by the project that owns it is handled at the point of that deletion, in **3.5**.
+- Whether the task picker reaches across Areas is answered in **4.3**: it does not. Connect's same-Area restriction (6.1) now applies to Waiting too.
+
+No phase is waiting on an answer. Per `CONTEXT.md`'s escalation criteria, a *new* open decision is not to be settled with a default — if the build turns one up, it stops and asks.
 
 ---
 
