@@ -1,6 +1,8 @@
-# TASKS.md — Current V1 Sandbox
+# TASKS-V1.md — Current V1 Sandbox
 
 Generated from `CURRENT-V1-SANDBOX-SPEC.md`. Scoped strictly to that document — nothing here anticipates a later version.
+
+**Closed and complete.** Every item below is done and both acceptance criteria were met against the live project. This is the record of what V1 was built to, not the plan of record — that is `TASKS.md`, generated from `CURRENT-V2-SANDBOX-SPEC.md`.
 
 Build order is top to bottom. Each phase leaves the app in a usable state.
 
