@@ -1,7 +1,7 @@
 # CONTEXT.md — Current
 
 ## What this is
-Current — a personal project/direction-tracking app. Fresh build, fresh repo, no history yet. This file is the single source of truth for current app state; keep it lean and update it after every session, per usual convention.
+Current — a personal project/direction-tracking app. V1 shipped and is in real daily use; v2 is specced and planned against what that use showed. This file is the single source of truth for current app state; keep it lean and update it after every session, per usual convention.
 
 ## Stack
 React, TypeScript, Vite, Tailwind, Supabase, TanStack Query, Zustand, Dexie, Recharts, vite-plugin-pwa.
@@ -10,18 +10,30 @@ React, TypeScript, Vite, Tailwind, Supabase, TanStack Query, Zustand, Dexie, Rec
 Fresh, dedicated Supabase project. No shared backend or cross-app data access with Overload.
 
 ## Current build target
-**V1 sandbox — deliberately minimal.** Spec: `CURRENT-V1-SANDBOX-SPEC.md`. Scope: Area → Canvas → Block, full create/edit/delete on everything, one status model (Upcoming/Active/Done), one Free Note type, freeform block placement, no ordering or connections between blocks. Built rough on purpose — no visual design pass — specifically to learn what's actually needed through real daily use before investing further.
+**V2 sandbox.** Spec: `CURRENT-V2-SANDBOX-SPEC.md`. Plan: `TASKS.md`. Still a sandbox, still no visual design pass — but no longer a guess: every feature in it traces to a specific instance of using v1 for real, which is exactly what v1 was built to produce.
 
-**Not in scope for this build:** Vision, Phase, connections/branching/merging, sub-projects, tabs, resize, theming, visual design. A fuller v2+ vision covering these exists, but is kept outside this repo on purpose, so it can't shape this build. It is not present here — don't look for it, don't reconstruct it, and its absence is not a gap to flag or escalate. Everything needed for this build is already in `CURRENT-V1-SANDBOX-SPEC.md`.
+Scope: what a Block contains is replaced by a project canvas inside a resizable popup, holding Lists (step-by-step or flat) and Notes; Connect adds block-to-block connections with graph auto-layout; Waiting adds project-level blocking built from entries, with a derived Ready state; Focused marks what's being worked on and gets its own screen; a three-way Filter controls what the canvas shows; and Visuals carry the states that aren't otherwise legible. Plus the one v1 fix: text inputs that expand with their content.
+
+Carried forward from v1 unchanged: Areas, single-account auth with RLS, confirmation on every delete, Area-level Free Notes, one kind of Block, and the three manual statuses.
+
+**Not in scope for this build:** Vision, Phase and everything on it, theming, any visual design pass, task-level Waiting, shared tasks between blocks, "Today", an explicit next-step pointer, projects-within-projects, zoom/pan, and fullscreen/tab mode. A fuller v2+/vision-scale version of this product exists, but is kept outside this repo on purpose, so it can't shape this build. It is not present here — don't look for it, don't reconstruct it, and its absence is not a gap to flag or escalate. Everything needed for this build is already in `CURRENT-V2-SANDBOX-SPEC.md`.
+
+`CURRENT-V1-SANDBOX-SPEC.md` and `TASKS-V1.md` are kept as the record of what v1 was built to. The v2 spec supersedes the v1 spec entirely; neither v1 file is the plan of record any more.
 
 ## Status
-**Complete and verified — 2026-09-09.** All six phases are built, all 26 items in `TASKS.md` are done, and both acceptance criteria have been met against the live Supabase project: 0.3's RLS check by `npm run verify:rls`, and 2.4's cascade delete by Adam in the running app. Login, Areas, Canvas, Blocks, Tasks and Free Notes all work end to end.
+**V1 is complete, verified and live — closed 2026-09-09.** All six of its phases were built, all 26 items in `TASKS-V1.md` are done, and both acceptance criteria were met against the live Supabase project: 0.3's RLS check by `npm run verify:rls`, and 2.4's cascade delete by Adam in the running app. Login, Areas, Canvas, Blocks, Tasks and Free Notes all work end to end, and have been in real daily use since. That use is what produced the v2 spec.
 
-Nothing further is planned for this build. **The next step is not code — it is using it.** The sandbox exists to find out, through real daily use, what is actually needed; that evidence is what should shape whatever comes next, not a fresh round of planning against the same spec.
+**V2 is planned, not built — 2026-09-10.** `TASKS.md` holds seven phases and 40 items, generated from `CURRENT-V2-SANDBOX-SPEC.md`. Nothing in it is started. The running app is still v1 in every respect.
 
-Both decisions that were open after planning are now resolved and reflected in the spec and `TASKS.md`: Supabase email auth with one account and RLS locking every table to that user, one login screen (Phase 0.3); and Free Notes get their own explicit delete action gated by the confirm dialog, with auto-discard-on-empty-blur covering only a note that was never given real content (Phase 5.4).
+**The database is no longer empty, and that changes the shape of the risk.** V1's migration had nothing to lose; v2's Phase 2 rewrites live rows — tasks move out of blocks and into lists. Back up from the Supabase dashboard before it runs. The delta itself has been exercised against a scratch Postgres seeded with representative v1 data and preserves every task; what has *not* been exercised is the real database.
 
-Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installed in this build — nothing in the V1 spec needs offline storage, installability, or charts.
+Three decisions are open and are Adam's — see `TASKS.md` § Open decisions. Each has a working default recorded there, so no phase is blocked waiting on an answer.
+
+Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installed — nothing in either spec needs offline storage, installability, or charts.
+
+## V1 — what was built
+
+This is the app as it currently stands. Every phase number in this section is v1's, from `TASKS-V1.md`; v2's plan restarts its own numbering at 1, so "Phase 3" means different things in the two files — this heading is what tells them apart.
 
 ### Phase 0 — what was built
 
@@ -102,10 +114,10 @@ Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installe
 
 Always escalate to Adam:
 
-* Anything touching the database schema or a migration
-* Anything not explicitly decided in `CURRENT-V1-SANDBOX-SPEC.md` — no guessing at product or design intent
+* Anything touching the database schema or a migration. This is heavier now than it was in v1: the database holds real data that has been in daily use, so a migration can destroy something. `TASKS.md` Phase 2 is the one planned, and it is Adam's to run, after a backup.
+* Anything not explicitly decided in `CURRENT-V2-SANDBOX-SPEC.md` — no guessing at product or design intent. The three items in `TASKS.md` § Open decisions are his; their recorded defaults exist so a phase isn't blocked, not to pre-empt the answer.
 * Anything touching auth, or crossing the Overload/Current data boundary
-* The builder deleting or overwriting any existing data or files unexpectedly during the build itself — this does NOT mean the app's own user-facing delete features (Area/Block/Task/Note), which are already fully specced and don't need re-approval each time code is written for them
+* The builder deleting or overwriting any existing data or files unexpectedly during the build itself — this does NOT mean the app's own user-facing delete features (Area, Block, Task, List, Note, Connection, and Waiting entry), which are already fully specced and don't need re-approval each time code is written for them
 * A test failure without an obvious, mechanical fix
 * Anything that would change scope, cost, or timeline versus what TASKS.md described
 
@@ -119,6 +131,8 @@ Proceed without asking:
 ## Build log
 
 Running record of chunk hand-offs and escalations. One entry per event, newest last.
+
+Entries before 2026-09-10 predate the v1/v2 split: "TASKS.md" in them means the file now called `TASKS-V1.md`, and their phase numbers are v1's. They are left as written rather than retrofitted.
 
 * **2026-09-08 — Reviewer session started.** Watching the build chunk by chunk; chunks are the TASKS.md phases in order (0 → 5), one phase per builder session, no combining or splitting. On each builder going idle: read its summary, check it against the escalation criteria above, then either start the next phase's builder or hand the decision to Adam and wait.
 * **2026-09-08 — Phase 0 builder running** (`session_01VNn4vAkyhpL3K7whuNNj5T`, branch `claude/amazing-hamilton-18epoe`), started outside this session. Cloud sessions aren't reachable as peers for an idle subscription, so the reviewer polls the session record on a self-scheduled check-in instead. Gate is at the end of Phase 0, before Phase 1 starts.
@@ -192,3 +206,15 @@ Running record of chunk hand-offs and escalations. One entry per event, newest l
   **The lesson worth carrying forward:** a clean diff, a green build and a ticked checkbox are all compatible with a broken feature. Three of the four defects were invisible in review and visible in a browser. Build it, run it, and look at it.
   **Error-handling defaults are in place**, closing the two spec gaps: failed writes surface in a dismissible banner naming the real cause, and loading, failed and genuinely empty are three distinct states, so "No areas yet" only ever means zero areas exist.
   Repository state: `main` is the only branch and carries everything; the eleven build branches are deleted. Nothing is outstanding.
+
+---
+
+* **2026-09-10 — V1 closed out as a build; V2 specced and planned. No app code touched.**
+  V1 is complete and live and stays that way — what changed is that it is no longer the target. Its plan moved to `TASKS-V1.md` by `git mv`, so its history survives the rename, retitled and marked closed but otherwise untouched. `CURRENT-V2-SANDBOX-SPEC.md` was committed to the repo root and then read back from there rather than from the message it arrived in, so the plan is generated from what is actually committed. `TASKS.md` is now v2's, generated from that spec: seven phases, 40 items, none started.
+  **Build order is dependency order, with one deliberate exception.** The expanding-text fix goes first even though it is the smallest item, because it needs no migration — so it lands whatever happens with the schema gate — and because every later phase that renders text reuses the component it builds. Then the schema, then the project canvas (which every remaining phase depends on, since tasks now live in Lists), Waiting, Focused (after Waiting, so the mutual exclusion has something to be exclusive with), Connect, and finally Filter and the content marker, which needs every kind of content to exist before "holding anything" means anything.
+  **Two things the spec looks like it needs and doesn't.** There is no `waiting` column — "entries, not one field" makes both Waiting and Ready derived from the entries that exist. And there is no `position` column anywhere: a step-by-step list's order is its creation order, because the spec's task CRUD is add / edit / delete / mark complete and reordering is not among them. Adding either would have been building for a version this plan is deliberately not planning for.
+  **The migration was run, not just written.** Against a scratch Postgres 16 seeded with representative v1 data — two Areas, a block with tasks, a block without, tasks in a second Area, notes — the full chain applies clean and every task survives into a Flat list under its original block with its completed state intact, while the block with no tasks correctly gets no list. The new checks accept and reject what they should, and the cascade holds from an Area delete down through lists, tasks, notes at both levels, connections and Waiting entries.
+  **Running it changed the plan in two places, which is the point.** The database accepts `A→B` and `B→A` quite happily — a check constraint cannot express reachability — so acyclicity is client-side and the plan says so rather than assuming the schema covers it. And deleting a task that a Waiting entry points at cascades the pick away but leaves the entry standing with nothing in it, which would have read as Ready vacuously; the Ready test now requires every entry to hold at least one pick, and does not depend on the client having tidied the empty entry away, since the task can be deleted from another Area entirely.
+  **Three open decisions, each with a working default** so no phase blocks waiting on an answer: what happens to Waiting and Focused when a project leaves Active by a route other than Done; what happens to a picked task deleted by the project that owns it; and whether the task picker reaches across Areas, which Connect restricts explicitly and Waiting does not.
+  **The migration risk is genuinely different this time.** V1's ran against an empty database. V2's Phase 2 rewrites rows that are in real daily use, and the scratch-Postgres run proves the SQL, not the data. Back up from the dashboard first.
+  Nothing was built. The next step is Phase 1 of `TASKS.md`, or Adam's answers to the three open decisions — in either order, since neither blocks the other.
