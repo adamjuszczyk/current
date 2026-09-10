@@ -3,6 +3,7 @@ import type { PointerEvent } from 'react'
 import { useDeleteNote, useUpdateNoteContent, useUpdateNotePosition } from '../lib/notes'
 import { settled } from '../lib/settled'
 import type { Note } from '../types'
+import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { useConfirm } from './confirmContext'
 
 // A pointer-up that moved less than this doesn't count as a drag — mirrors
@@ -131,12 +132,12 @@ export function NoteCard({ note, autoFocus }: { note: Note; autoFocus: boolean }
           Delete
         </button>
       </div>
-      <textarea
+      <AutoGrowTextarea
         value={content}
         onChange={(e) => handleContentChange(e.target.value)}
         onBlur={commitOnBlur}
         autoFocus={autoFocus}
-        className="h-24 flex-1 resize-none bg-transparent px-2 py-1 text-sm outline-none"
+        className="bg-transparent px-2 py-1 text-sm outline-none"
       />
     </div>
   )
