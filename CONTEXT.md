@@ -23,11 +23,11 @@ Carried forward from v1 unchanged: Areas, single-account auth with RLS, confirma
 ## Status
 **V1 is complete, verified and live — closed 2026-09-09.** All six of its phases were built, all 26 items in `TASKS-V1.md` are done, and both acceptance criteria were met against the live Supabase project: 0.3's RLS check by `npm run verify:rls`, and 2.4's cascade delete by Adam in the running app. Login, Areas, Canvas, Blocks, Tasks and Free Notes all work end to end, and have been in real daily use since. That use is what produced the v2 spec.
 
-**V2 is planned, not built — 2026-09-10.** `TASKS.md` holds seven phases and 40 items, generated from `CURRENT-V2-SANDBOX-SPEC.md`. Nothing in it is started. The running app is still v1 in every respect.
+**V2 is planned, not built — 2026-09-10.** `TASKS.md` now holds eight chunks — Phase 1, Phase 2a, Phase 2b, and Phases 3–7 — and 43 items, generated from `CURRENT-V2-SANDBOX-SPEC.md`. Nothing in it is started. The running app is still v1 in every respect.
 
-**The database is no longer empty, and that changes the shape of the risk.** V1's migration had nothing to lose; v2's Phase 2 rewrites live rows — tasks move out of blocks and into lists. Back up from the Supabase dashboard before it runs. The delta itself has been exercised against a scratch Postgres seeded with representative v1 data and preserves every task; what has *not* been exercised is the real database.
+**The database is no longer empty, and that changes the shape of the risk.** V1's migration had nothing to lose; v2's Phase 2b rewrites live rows — tasks move out of blocks and into lists. Phase 2 is now split on exactly that line: 2a writes and proves the migration against a scratch database, 2b is the one irreversible step, applying it to the live project, and it does not start without a confirmed backup. The delta itself has been exercised against a scratch Postgres seeded with representative v1 data and preserves every task; what has *not* been exercised is the real database.
 
-Three decisions are open and are Adam's — see `TASKS.md` § Open decisions. Each has a working default recorded there, so no phase is blocked waiting on an answer.
+One decision is open and is Adam's — see `TASKS.md` § Open decisions: whether the Waiting task-picker reaches across Areas. It has a working default recorded there, so no phase is blocked waiting on an answer. Two other decisions from the planning session — what happens when a project tries to leave Active while genuinely Waiting, and what happens when a task something is waiting on gets deleted — are now resolved and built into Phase 4 (4.5) and Phase 3 (3.5) respectively, rather than living as open defaults.
 
 Dexie, vite-plugin-pwa, and Recharts are in the stack above but are not installed — nothing in either spec needs offline storage, installability, or charts.
 
@@ -110,23 +110,26 @@ This is the app as it currently stands. Every phase number in this section is v1
 - Verified in a headless browser against a temporary in-memory mock of the Supabase client (written over `src/lib/supabase.ts`, restored before committing, same pattern as every prior phase), seeded with one Area: clicking "+ Note" created a row immediately (confirmed against the mock store, no popup ever rendered) and `document.activeElement` was the new note's `<textarea>`; typing "Hello world" and blurring (a click elsewhere) persisted that content to the mock store; dragging the header handle by (150, 100) moved the card on screen and persisted the new `x`/`y`; creating a second note and blurring it immediately with no typing removed it from the store entirely (5.3); creating a third note, typing "Temporary content", then selecting-all and deleting the text before blurring left the row in the store with `content: ""` — it survived (5.4, the critical case); creating a fourth note with real content and clicking its Delete button opened the confirm dialog ("Delete this note?"); Cancel left the note and its content untouched, and a subsequent Delete-then-Confirm removed it from the store. All of this was also screenshotted and visually inspected, not just asserted from store state — notes render as a small yellow card with a drag-handle/Delete header above the text area, multiple notes coexist and are independently draggable, and the confirm dialog overlays correctly. No console or page errors during any of this. **Not verified**: anything against a live Supabase project — this environment has no credentials, per the instruction not to seek any.
 - **Post-review fix** (caught during this phase's own verification, not a later pass): the pointer-capture-swallows-the-Delete-click bug described above. No other issues found.
 
-## Escalation criteria
+## Escalation criteria — Current v2
 
-Always escalate to Adam:
+Always escalate:
 
-* Anything touching the database schema or a migration. This is heavier now than it was in v1: the database holds real data that has been in daily use, so a migration can destroy something. `TASKS.md` Phase 2 is the one planned, and it is Adam's to run, after a backup.
-* Anything not explicitly decided in `CURRENT-V2-SANDBOX-SPEC.md` — no guessing at product or design intent. The three items in `TASKS.md` § Open decisions are his; their recorded defaults exist so a phase isn't blocked, not to pre-empt the answer.
-* Anything touching auth, or crossing the Overload/Current data boundary
-* The builder deleting or overwriting any existing data or files unexpectedly during the build itself — this does NOT mean the app's own user-facing delete features (Area, Block, Task, List, Note, Connection, and Waiting entry), which are already fully specced and don't need re-approval each time code is written for them
-* A test failure without an obvious, mechanical fix
-* Anything that would change scope, cost, or timeline versus what TASKS.md described
+* Anything touching the database schema or a migration. Phase 2b specifically: confirm the live backup exists before it runs, not just before the phase starts — this migration rewrites rows that are in real use, v1's did not.
+* Anything not explicitly decided in spec or TASKS.md — no guessing at product intent. If something looks like it needs a third open decision beyond the two already resolved, stop and ask rather than picking a default.
+* Anything touching auth, or crossing the data boundary between Current and any other app on the shared Supabase project.
+* Any live/diagnostic SQL query outside the migration itself must explicitly filter to the owner's user_id. If another user's data ever surfaces, that's a bug — stop immediately, do not investigate further, do not write it up.
+* The builder deleting or overwriting existing data or files unexpectedly during the build — not the app's own confirmed delete features, which are already fully specced.
+* A test failure without an obvious, mechanical fix.
+* Anything that would change scope, cost, or timeline versus TASKS.md.
 
 Proceed without asking:
 
-* Lint/type fixes, typos, formatting
-* Adding tests for already-specified behavior
-* Following a pattern already established elsewhere in the codebase
-* Anything TASKS.md already pre-approved explicitly
+* Lint/type fixes, typos, formatting.
+* Adding tests for already-specified behavior.
+* Following a pattern already established elsewhere in the codebase.
+* Anything TASKS.md's acceptance criteria already cover, including the two resolved decisions now patched into the file.
+
+Note, unchanged from v1 and worth keeping verbatim: for schema and auth, "already decided" means the decision doesn't need relitigating — not that the implementation skips a look. Bring the actual diff every time. This is exactly how v1's RLS bug got caught.
 
 ## Build log
 
@@ -218,3 +221,14 @@ Entries before 2026-09-10 predate the v1/v2 split: "TASKS.md" in them means the 
   **Three open decisions, each with a working default** so no phase blocks waiting on an answer: what happens to Waiting and Focused when a project leaves Active by a route other than Done; what happens to a picked task deleted by the project that owns it; and whether the task picker reaches across Areas, which Connect restricts explicitly and Waiting does not.
   **The migration risk is genuinely different this time.** V1's ran against an empty database. V2's Phase 2 rewrites rows that are in real daily use, and the scratch-Postgres run proves the SQL, not the data. Back up from the dashboard first.
   Nothing was built. The next step is Phase 1 of `TASKS.md`, or Adam's answers to the three open decisions — in either order, since neither blocks the other.
+
+---
+
+* **2026-09-10 — Two of three open decisions resolved and built into `TASKS.md`; Phase 2 split on the irreversible line. No application code touched.**
+  Housekeeping session on the plan, not the app. Adam resolved two of the previous session's three open decisions himself; both are now folded into the phases they govern instead of sitting in `TASKS.md` § Open decisions as defaults.
+  **A project can no longer leave Active while genuinely Waiting.** This replaces, rather than refines, the earlier default (Focused cleared on any exit, Waiting entries kept but hidden). The new rule is a hard gate: any non-Ready Waiting entry blocks a status change off Active until the project reaches Ready, per 4.4's existing definition — landed as Phase 4's new 4.5, with its own acceptance criterion, pushing the rest of Phase 4 (4.5–4.9) down to 4.6–4.10.
+  **Deleting a task that something is Waiting on now warns before it happens.** The pick disappearing with the task, and an emptied entry going with its last pick, was already the previous session's default; what's new is that the confirm dialog now checks for this first and names the waiting project in its warning, so the loss is disclosed rather than merely tidied up silently afterward. No second confirmation beyond that — the warning stands in for one. Landed as Phase 3's new 3.5, right after 3.4's existing task-delete confirmation, pushing 3.5–3.7 down to 3.6–3.8; cross-referenced from the new Phase 4.9 (entry delete), since the two are easy to confuse and are deliberately handled at different points — a picked task's own delete lives in 3.5, a Waiting entry's own delete is 4.9, and neither raises the other's confirmation.
+  **The third decision — whether the Waiting task-picker reaches across Areas — stays open**, exactly as it was, now the sole entry in § Open decisions, renumbered from 3 to 1 since it's alone.
+  **Phase 2 is split into 2a and 2b, on the one line that actually matters: reversible versus not.** 2a is everything that can be redone if it's wrong — writing `0002_v2.sql`, RLS on the four new tables, and the client compatibility layer — proven with a *fresh* dry run against a scratch database at build time, deliberately not by citing this planning session's earlier run, since the migration file can drift between planning and building. 2b is the one line that can't be redone — running that same file against the live project — and does nothing until a live backup is confirmed to exist immediately beforehand, not merely at some point since the phase began. Every other reference to "Phase 2" in `TASKS.md` and here was checked and updated to say 2a or 2b specifically, or generalized where either could apply.
+  **`CONTEXT.md`'s escalation criteria were replaced, not appended to.** The old `## Escalation criteria` section (itself already updated for v2 last session) and the new `## Escalation criteria — Current v2` Adam supplied this session covered nearly the same ground — schema/migration, undecided product intent, auth/data boundaries, unexpected deletes, test failures, scope creep — so keeping both would have left two overlapping, partly stale lists answering the same question. The old section is gone; the new one, added verbatim as given, is now the only one. It adds three things the old one didn't have: a named gate on Phase 2b specifically (confirm the backup right before running, not just at the phase's start); an instruction to stop and ask rather than invent a fourth open decision if the build turns one up; and a rule that any live/diagnostic SQL outside the migration itself must filter to the owner's user_id, with an unconditional stop if another user's data ever surfaces.
+  **Two things in that new section as given don't quite match what's actually in this repo, flagged rather than silently fixed:** it was added exactly as supplied, per instruction, not edited to resolve either. First, the user_id-filtering rule presumes a `user_id` column; this schema has none on any table — Phase 0's RLS policies compare `auth.uid()` directly, by design (see Phase 0's build notes above). Second, it refers to "the shared Supabase project," but `## Database` above has said from the start that this is "a fresh, dedicated Supabase project. No shared backend or cross-app data access with Overload." Both are worth Adam's eyes; neither was resolved unilaterally here.
