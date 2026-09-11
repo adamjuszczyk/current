@@ -34,6 +34,15 @@ interface UIState {
   openPopup: (popup: string, context?: Record<string, unknown>) => void
   closePopup: () => void
 
+  // 6.1-6.3: click-to-connect on the Area canvas. Toggling the mode off
+  // (or on) always clears any pending source selection. Global rather than
+  // local Canvas state because BlockCard already reads uiStore directly
+  // for openPopup, and every block on the canvas needs to react to it.
+  connectMode: boolean
+  connectSourceId: string | null
+  toggleConnectMode: () => void
+  setConnectSource: (id: string | null) => void
+
   errors: UIError[]
   pushError: (message: string) => void
   dismissError: (id: number) => void
@@ -56,6 +65,11 @@ export const useUIStore = create<UIState>((set) => ({
   popupContext: null,
   openPopup: (popup, context) => set({ activePopup: popup, popupContext: context ?? null }),
   closePopup: () => set({ activePopup: null, popupContext: null }),
+
+  connectMode: false,
+  connectSourceId: null,
+  toggleConnectMode: () => set((state) => ({ connectMode: !state.connectMode, connectSourceId: null })),
+  setConnectSource: (id) => set({ connectSourceId: id }),
 
   errors: [],
   pushError: (message) =>

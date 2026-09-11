@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useBlocks } from '../lib/blocks'
+import { useConnections } from '../lib/connections'
 import { useCreateNote, useNotes } from '../lib/notes'
 import { settled } from '../lib/settled'
 import { useUIStore } from '../store/uiStore'
 import { BlockCard } from './BlockCard'
 import { BlockCreatePopup } from './BlockCreatePopup'
 import { BlockEditPopup } from './BlockEditPopup'
+import { ConnectionLines } from './ConnectionLines'
 import { NoteCard } from './NoteCard'
 
 // Half the BlockCard's fixed footprint (w-40 ~= 160px, plus padding/shadow),
@@ -34,6 +36,7 @@ export function Canvas({ areaId }: { areaId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const { data: blocks = [], isError: blocksFailed } = useBlocks(areaId)
   const { data: notes = [], isError: notesFailed } = useNotes({ areaId })
+  const { data: connections = [], isError: connectionsFailed } = useConnections(areaId)
   const createNote = useCreateNote()
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null)
   const activePopup = useUIStore((s) => s.activePopup)
@@ -42,6 +45,8 @@ export function Canvas({ areaId }: { areaId: string }) {
   const closePopup = useUIStore((s) => s.closePopup)
   const scrollToBlockId = useUIStore((s) => s.scrollToBlockId)
   const clearScrollTarget = useUIStore((s) => s.clearScrollTarget)
+  const connectMode = useUIStore((s) => s.connectMode)
+  const toggleConnectMode = useUIStore((s) => s.toggleConnectMode)
 
   // 5.5: the Focus screen sets scrollToBlockId and switches to this Area;
   // once that block's row is actually loaded here, scroll it into view and
@@ -97,16 +102,37 @@ export function Canvas({ areaId }: { areaId: string }) {
         <button type="button" onClick={handleAddNote} className="border px-3 py-1">
           + Note
         </button>
+        {/* 6.1-6.3: toggles click-to-connect mode; BlockCard reads
+            connectMode/connectSourceId from uiStore directly. */}
+        <button
+          type="button"
+          onClick={toggleConnectMode}
+          aria-pressed={connectMode}
+          className={`border px-3 py-1 ${connectMode ? 'bg-black text-white' : ''}`}
+        >
+          {connectMode ? 'Connecting…' : 'Connect blocks'}
+        </button>
       </div>
 
-      {(blocksFailed || notesFailed) && (
+      {connectMode && (
+        <p className="border-b bg-blue-50 px-4 py-1 text-xs text-blue-900">
+          Click a block, then another in this Area to connect them (left to right, source to target). Click the
+          selected block again to cancel.
+        </p>
+      )}
+
+      {(blocksFailed || notesFailed || connectionsFailed) && (
         <p role="alert" className="border-b bg-red-100 px-4 py-2 text-sm text-red-900">
-          Couldn&apos;t load this area&apos;s {blocksFailed && notesFailed ? 'blocks or notes' : blocksFailed ? 'blocks' : 'notes'}.
-          The canvas below is incomplete — it is not empty.
+          Couldn&apos;t load this area&apos;s{' '}
+          {[blocksFailed && 'blocks', notesFailed && 'notes', connectionsFailed && 'connections']
+            .filter((label): label is string => typeof label === 'string')
+            .join(', ')}
+          . The canvas below is incomplete — it is not empty.
         </p>
       )}
 
       <div ref={scrollRef} className="relative flex-1 overflow-auto">
+        <ConnectionLines areaId={areaId} blocks={blocks} connections={connections} />
         {blocks.map((block) => (
           <BlockCard key={block.id} block={block} />
         ))}
