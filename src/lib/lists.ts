@@ -4,10 +4,9 @@ import { supabase } from './supabase'
 
 // Server state for Lists, through TanStack Query — same pattern as
 // src/lib/blocks.ts. Scoped per Block since that's always how they're
-// read. This is 2a.3's stepping stone: no list CRUD UI exists yet, so the
-// only writer is BlockCreatePopup's quick-capture and BlockEditPopup's
-// lazy "create the block's one untitled Flat list on first task added"
-// path (Phase 3 adds the rest — kind picker, title, drag, delete).
+// read. Phase 3 generalises 2a.3's one-implicit-list stepping stone to
+// real multi-list CRUD: kind picker + title at creation (kind is fixed
+// afterwards — no update path for it, by design), drag, delete.
 const listsKey = (blockId: string) => ['lists', blockId]
 
 export function useLists(blockId: string | null) {
@@ -49,6 +48,32 @@ export function useCreateList() {
         .single()
       if (error) throw error
       return data as List
+    },
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: listsKey(variables.blockId) }),
+  })
+}
+
+// Persists a List's position on drag-drop (3.2), same shape as
+// useUpdateBlockPosition/useUpdateNotePosition.
+export function useUpdateListPosition() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, x, y }: { id: string; blockId: string; x: number; y: number }) => {
+      const { error } = await supabase.from('lists').update({ x, y }).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: listsKey(variables.blockId) }),
+  })
+}
+
+// List delete (3.8) — its Tasks are removed by the `on delete cascade` FK,
+// nothing to hand-delete here, same reasoning as Area/Block delete.
+export function useDeleteList() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; blockId: string }) => {
+      const { error } = await supabase.from('lists').delete().eq('id', id)
+      if (error) throw error
     },
     onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: listsKey(variables.blockId) }),
   })

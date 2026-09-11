@@ -1,19 +1,28 @@
 import { useEffect, useRef } from 'react'
-import type { MouseEvent, ReactNode } from 'react'
+import type { CSSProperties, MouseEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 // Shared popup/modal shell — reused by every popup in the app (Area create,
 // Area edit/delete, Add block, Block detail, confirm dialog). Rendered only
 // while the caller wants it open; unmount to close.
+//
+// contentClassName/contentStyle let a caller replace the content box's own
+// sizing (BlockEditPopup's resizable window, 3.1) without touching the
+// backdrop/portal/focus/Escape behaviour every popup shares. Omit both to
+// get the original fixed-size dialog unchanged.
 interface PopupProps {
   onClose: () => void
   children: ReactNode
+  contentClassName?: string
+  contentStyle?: CSSProperties
 }
+
+const DEFAULT_CONTENT_CLASSNAME = 'max-h-[90vh] max-w-lg overflow-auto bg-white p-4 outline-none'
 
 // Mounted popups in open order, so Escape closes only the topmost one.
 const popupStack: symbol[] = []
 
-export function Popup({ onClose, children }: PopupProps) {
+export function Popup({ onClose, children, contentClassName, contentStyle }: PopupProps) {
   const contentRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(Symbol('popup'))
   const onCloseRef = useRef(onClose)
@@ -65,7 +74,8 @@ export function Popup({ onClose, children }: PopupProps) {
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        className="max-h-[90vh] max-w-lg overflow-auto bg-white p-4 outline-none"
+        style={contentStyle}
+        className={contentClassName ?? DEFAULT_CONTENT_CLASSNAME}
       >
         {children}
       </div>
