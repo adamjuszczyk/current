@@ -177,27 +177,35 @@ What a Block contains, replaced. The largest change in v2, and everything after 
 
 Needs Phase 3: the task picker picks tasks, and tasks now live in Lists.
 
-- [ ] **4.1** Waiting entries on a block, multiple at once, available on Active projects.
+- [x] **4.1** Waiting entries on a block, multiple at once, available on Active projects.
   - There is no separate "mark as Waiting" step and no Waiting flag. A project is Waiting exactly while it holds at least one entry — adding the first is what turns it on, deleting the last is what turns it off. This follows directly from "Entries, not one field."
-- [ ] **4.2** Two entry types, chosen per entry: free-typed text, or one or more picked tasks. One entry can hold several picked tasks, and resolves only when every one of them is Done.
-- [ ] **4.3** The picker offers tasks from other projects **in the same Area only** — never the project's own tasks, and never another Area's.
+- [x] **4.2** Two entry types, chosen per entry: free-typed text, or one or more picked tasks. One entry can hold several picked tasks, and resolves only when every one of them is Done.
+- [x] **4.3** The picker offers tasks from other projects **in the same Area only** — never the project's own tasks, and never another Area's.
   - Resolved by Adam, closing what was the last open decision. Waiting now matches Connect's explicit "within the same Area — not across Areas" (6.1); the spec's silence on the point was an omission, not a deliberate contrast.
   - Consequence worth stating, since it is the reason the restriction is cheap: a pick and the task it points at always live in the same Area, so the picker's candidate query is scoped by the Area already loaded for the canvas, and no cross-Area read is needed to render a Waiting card.
-- [ ] **4.4** Ready, derived on read and never stored: the project holds at least one entry, every entry is a picked-task entry holding at least one pick, and every picked task across every entry is Done. A single free-text entry anywhere on the project means Ready can never be reached automatically — free text is cleared by hand, like any note or task.
+- [x] **4.4** Ready, derived on read and never stored: the project holds at least one entry, every entry is a picked-task entry holding at least one pick, and every picked task across every entry is Done. A single free-text entry anywhere on the project means Ready can never be reached automatically — free text is cleared by hand, like any note or task.
   - Both "at least one" clauses are load-bearing, and both guard against a vacuous truth rather than a hypothetical. Without the first, a project with no entries at all would read as Ready. Without the second, so would a project whose only entry lost its last pick — which is a state the database really does produce: deleting a task cascades away the pick but leaves the entry standing (verified). 3.5 has the client tidy that entry up automatically, as part of that task's own delete flow, but Ready must not depend on the tidy-up having happened.
     - *That reason changed when 4.3 was resolved, but the rule did not.* It used to rest on the task being deletable from another Area entirely; with the picker confined to one Area, that particular route is gone. The clause stays because the tidy-up is client-side and therefore not guaranteed: the delete can fail (v1 built the error banner precisely because writes do fail), the client can be stale, and a row can be removed outside the app altogether through the Supabase dashboard. Ready is derived on read, so it has to be correct against whatever the database actually holds, not against an assumption that the client got to tidy up first.
-- [ ] **4.5** A project cannot leave Active — to either Upcoming or Done — while it is genuinely Waiting: holding at least one entry that hasn't reached the Ready state defined in 4.4. It must reach Ready first before a status change off Active is allowed.
+- [x] **4.5** A project cannot leave Active — to either Upcoming or Done — while it is genuinely Waiting: holding at least one entry that hasn't reached the Ready state defined in 4.4. It must reach Ready first before a status change off Active is allowed.
   - A project holding zero Waiting entries is never Waiting in the first place (per 4.1), so this gates nothing for it — same as today.
   - This resolves what was Open decision 1 in the previous plan. It replaces that decision's default outright, rather than extending it: a project no longer leaves Active with entries hidden behind it, waiting to reappear — it simply cannot leave while genuinely blocked. What becomes of a project's (now-Ready) entries once it does leave Active is unchanged from how Waiting already behaves elsewhere; nothing here clears or hides them.
   - **Acceptance:** attempting to change status away from Active while any non-Ready Waiting entry exists is refused, with a message naming what's still outstanding; the same project becomes changeable the moment it reaches Ready.
-- [ ] **4.6** The Waiting card on the block, on the Area canvas. Folded by default, showing a one-line preview and a clear expand affordance. Expanded, it lists every entry.
+- [x] **4.6** The Waiting card on the block, on the Area canvas. Folded by default, showing a one-line preview and a clear expand affordance. Expanded, it lists every entry.
   - A picked task that becomes Done stays listed, struck through. It does not disappear — the card exists so that nothing is silently forgotten.
-- [ ] **4.7** Waiting visual: a dimmed version of the block's normal Active colour.
-- [ ] **4.8** Ready visual: a distinct badge or dot layered on top of the Waiting treatment — deliberately not another outline, because it has to be noticed rather than blend into the colour state.
-- [ ] **4.9** Entry delete goes through the confirm dialog.
+- [x] **4.7** Waiting visual: a dimmed version of the block's normal Active colour.
+- [x] **4.8** Ready visual: a distinct badge or dot layered on top of the Waiting treatment — deliberately not another outline, because it has to be noticed rather than blend into the colour state.
+- [x] **4.9** Entry delete goes through the confirm dialog.
   - This is deleting a Waiting entry directly. A picked task being deleted at its source, in another project's list, is handled where that delete already lives — see 3.5 — and does not raise a second confirmation here.
-- [ ] **4.10** Waiting is fully independent of Connect: picking a task never creates a connection, and no connection ever creates an entry.
+- [x] **4.10** Waiting is fully independent of Connect: picking a task never creates a connection, and no connection ever creates an entry.
   - **Acceptance:** a project with two entries — one free text, one holding two picked tasks — shows both when expanded; completing both picked tasks strikes them through and does not reach Ready while the free-text entry is present; deleting the free-text entry then shows Ready immediately, with no transition to trigger.
+  - **Acceptance verified 2026-09-11 by the reviewer**, not the builder — it went idle before updating this file. 19 checks in Chromium against a real Postgres carrying `0001`+`0002`+`0003`, every assertion read back over a separate connection.
+    - **4.4's two vacuous-truth guards both hold.** Zero entries → not Ready. A picked-task entry holding **zero picks** → not Ready; that row state was created directly in SQL, because it is what a cascaded task delete leaves behind and the client cannot produce it on demand — so Ready genuinely does not depend on 3.5 having tidied up. Not Ready with some picks Done, Ready once all are, and a single free-text entry blocks Ready however many picks are complete.
+    - **4.5** refuses leaving Active with `Can't change status off Active while still Waiting: a free-text entry ("call the supplier back")` — the specific reason, not a generic refusal. Status stayed `active`.
+    - **4.3** the picker is scoped at the query level (`.eq('area_id', …).neq('id', ownBlock)`), so other Areas cannot appear by construction. Driven: a same-Area neighbour's two tasks listed, the project's own task absent, another Area's task absent — all three non-vacuously, with the list actually populated.
+    - **4.6/4.7/4.8** card folded by default (29 chars → 80 expanded), Done picks stay listed struck through rather than disappearing, Waiting renders `oklch(0.882…)` against Active's `oklch(0.623…)` — visibly dimmer side by side — and Ready is a green badge with `aria-label="Ready"`, layered rather than an outline.
+    - **3.5, written inert in Phase 3, is live and works end to end:** deleting a picked task warns `It's currently a pick in a Waiting entry on Waiter`, removes the pick (2→1) leaving the entry standing, and when the last pick goes the entry goes with it automatically (picks 1→0, entries 1→0) with no second confirmation.
+    - **Not checked:** anything against the live Supabase project; 4.10's independence from Connect, which cannot be exercised until Phase 6 builds connections.
+
 
 ---
 
