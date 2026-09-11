@@ -124,9 +124,13 @@ Everything from here on depends on this shipping correctly. Per `CONTEXT.md`'s e
 
 The one irreversible action in the whole build. It is its own chunk, separate from 2a, specifically because of that: everything in 2a can be redone if it turns out wrong; this can't.
 
-- [ ] **2b.1** Take a live backup from the Supabase dashboard.
-  - V1's migration ran against an empty database and had nothing to lose; this one rewrites rows in real daily use.
-- [ ] **2b.2** Run `0002_v2.sql`, as verified fresh in 2a.1, against the live project. Does not start until 2b.1's backup is confirmed to exist — confirmed immediately before running, not merely at some point since the phase began.
+- [ ] **2b.1** ~~Take a live backup from the Supabase dashboard.~~ **Replaced, by Adam's decision 2026-09-11, with an in-database snapshot built into the migration itself.**
+  - V1's migration ran against an empty database and had nothing to lose; this one rewrites rows in real daily use. That reasoning is unchanged — what changed is how the restore point is taken.
+  - Supabase paywalls scheduled backups and PITR. A manual `pg_dump` over the connection string is free on every tier and was offered; Adam chose the snapshot instead.
+  - `0002_v2.sql` now opens by copying all four v1 tables into a `v1_backup` schema, **before** anything is altered — so `v1_backup.tasks` still carries the `block_id` that step 2 drops. The snapshot is created in its own schema rather than `public` on purpose: a table in `public` without RLS is served by PostgREST to anyone holding the anon key, which ships publicly in the client bundle, so a snapshot placed there would expose every task in the account. Verified: `anon` gets `permission denied for schema v1_backup`, and the schema grants no privileges to `anon` or `authenticated`.
+  - **Know what this does and does not cover.** It makes *this migration* recoverable: if the v1 → v2 rewrite goes wrong, the pre-migration rows are still there to rebuild from. It is **not** a backup of the database — it lives inside the very database it protects, so it does nothing about the project being deleted, corrupted, or lost. A `pg_dump` remains the only restore point that survives that, and is still worth taking.
+  - Drop the `v1_backup` schema once v2 has been in real use long enough to trust.
+- [ ] **2b.2** Run `0002_v2.sql`, as verified fresh in 2a.1, against the live project. The snapshot in 2b.1 is the first thing the file does, so it cannot be run without it — which is why it was folded into the migration rather than left as a separate step to remember.
   - **Acceptance:** the same check as 2a.1's dry run, now against the real data — every task that existed before still exists, still under the same block, in a Flat list. `npm run verify:rls` passes against the live project for all eight tables.
 
 ---
