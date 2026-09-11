@@ -10,6 +10,7 @@ export function AreaTabs() {
   const { data: areas = [], isSuccess } = useAreas()
   const activeAreaId = useUIStore((s) => s.activeAreaId)
   const setActiveAreaId = useUIStore((s) => s.setActiveAreaId)
+  const setActiveView = useUIStore((s) => s.setActiveView)
   const activePopup = useUIStore((s) => s.activePopup)
   const popupContext = useUIStore((s) => s.popupContext)
   const openPopup = useUIStore((s) => s.openPopup)
@@ -32,7 +33,10 @@ export function AreaTabs() {
         <button
           key={area.id}
           type="button"
-          onClick={() => setActiveAreaId(area.id)}
+          onClick={() => {
+            setActiveAreaId(area.id)
+            setActiveView('canvas')
+          }}
           onDoubleClick={() => openPopup('area-edit', { areaId: area.id })}
           className={`border px-3 py-1 ${area.id === activeAreaId ? 'bg-black text-white' : ''}`}
         >
