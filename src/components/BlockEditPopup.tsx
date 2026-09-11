@@ -80,6 +80,7 @@ export function BlockEditPopup({
   if (!block) return null
   const blockName = block.name
   const blockStatus = block.status
+  const blockFocused = block.focused
 
   function commitName() {
     const trimmed = name.trim()
@@ -96,6 +97,8 @@ export function BlockEditPopup({
   // returns one reason per non-Ready entry and [] once every entry is Ready
   // (or there are none), so that alone is the gate; a project with zero
   // entries was never Waiting in the first place and is refused nothing.
+  // 5.3: Done clears Focused with it, in the same write — not a separate
+  // mutation a failure could leave half-applied.
   function handleStatusChange(status: BlockStatus) {
     if (status === blockStatus) return
     if (blockStatus === 'active' && status !== 'active') {
@@ -105,7 +108,46 @@ export function BlockEditPopup({
         return
       }
     }
-    updateBlock.mutate({ id: blockId, areaId, status })
+    const changes: { id: string; areaId: string; status: BlockStatus; focused?: boolean } = {
+      id: blockId,
+      areaId,
+      status,
+    }
+    if (status === 'done' && blockFocused) changes.focused = false
+    updateBlock.mutate(changes)
+  }
+
+  // 5.1/5.2: Focused is available only on Active projects, and turning it
+  // on is refused outright while the project is Waiting (at least one
+  // entry, 4.1) — nothing is swapped or cleared on the user's behalf, the
+  // refusal just says which one has to go first. Turning it off has no
+  // such gate in either direction.
+  function handleToggleFocused() {
+    if (blockFocused) {
+      updateBlock.mutate({ id: blockId, areaId, focused: false })
+      return
+    }
+    if (blockStatus !== 'active') {
+      pushError('Focused is only available on Active projects.')
+      return
+    }
+    if (isProjectWaiting(entries)) {
+      pushError("Can't turn on Focused while Waiting: turn off Waiting first.")
+      return
+    }
+    updateBlock.mutate({ id: blockId, areaId, focused: true })
+  }
+
+  // 5.2, the other direction: adding a project's *first* Waiting entry is
+  // exactly "turning Waiting on" (4.1), so that's the one moment this needs
+  // checking — once the project already has entries, it was never Focused
+  // to begin with (this same guard already refused that transition).
+  function handleOpenWaitingPopup() {
+    if (entries.length === 0 && blockFocused) {
+      pushError("Can't turn on Waiting while Focused: turn off Focused first.")
+      return
+    }
+    setWaitingPopupOpen(true)
   }
 
   // 4.9: deleting a Waiting entry directly, gated by the confirm dialog —
@@ -186,6 +228,19 @@ export function BlockEditPopup({
           ))}
         </div>
 
+        <div>
+          {/* 5.4's outline lives on BlockCard, on the Area canvas — this is
+              just the on/off control, not a second visual treatment. */}
+          <button
+            type="button"
+            onClick={handleToggleFocused}
+            aria-pressed={blockFocused}
+            className={`border px-2 py-1 text-sm ${blockFocused ? 'bg-purple-600 text-white' : ''}`}
+          >
+            {blockFocused ? 'Focused' : 'Focus'}
+          </button>
+        </div>
+
         <div className="flex gap-2">
           <button type="button" onClick={handleAddList} className="border px-2 py-1 text-sm">
             + Add list
@@ -216,7 +271,7 @@ export function BlockEditPopup({
               )}
             </p>
             {blockStatus === 'active' && (
-              <button type="button" onClick={() => setWaitingPopupOpen(true)} className="border px-2 py-1 text-xs">
+              <button type="button" onClick={handleOpenWaitingPopup} className="border px-2 py-1 text-xs">
                 + Waiting entry
               </button>
             )}

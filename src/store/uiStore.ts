@@ -16,6 +16,19 @@ interface UIState {
   activeAreaId: string | null
   setActiveAreaId: (id: string | null) => void
 
+  // Which top-level screen is showing below the Area tabs (5.5). The Focus
+  // screen is a distinct view, not a filter over the canvas — Phase 7's
+  // Filter deliberately never touches it.
+  activeView: 'canvas' | 'focus'
+  setActiveView: (view: 'canvas' | 'focus') => void
+
+  // Set by the Focus screen when a project is picked (5.5): the Area canvas
+  // reads this once its Area is active and its blocks are loaded, scrolls
+  // the block into view, then clears it. Not persisted — a one-shot signal.
+  scrollToBlockId: string | null
+  setScrollTarget: (blockId: string) => void
+  clearScrollTarget: () => void
+
   activePopup: string | null
   popupContext: Record<string, unknown> | null
   openPopup: (popup: string, context?: Record<string, unknown>) => void
@@ -31,6 +44,13 @@ let nextErrorId = 0
 export const useUIStore = create<UIState>((set) => ({
   activeAreaId: null,
   setActiveAreaId: (id) => set({ activeAreaId: id }),
+
+  activeView: 'canvas',
+  setActiveView: (view) => set({ activeView: view }),
+
+  scrollToBlockId: null,
+  setScrollTarget: (blockId) => set({ scrollToBlockId: blockId }),
+  clearScrollTarget: () => set({ scrollToBlockId: null }),
 
   activePopup: null,
   popupContext: null,

@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { LoginScreen } from './auth/LoginScreen'
 import { AreaTabs } from './components/AreaTabs'
 import { Canvas } from './components/Canvas'
+import { FocusScreen } from './components/FocusScreen'
 import { useAreas } from './lib/areas'
 import { errorMessage } from './lib/errorMessage'
 import { supabase } from './lib/supabase'
@@ -44,11 +45,23 @@ function Workspace({ email }: { email: string }) {
   const { data: areas = [], isPending, isError, error, refetch } = useAreas()
   const activeAreaId = useUIStore((s) => s.activeAreaId)
   const activeArea = areas.find((area) => area.id === activeAreaId)
+  const activeView = useUIStore((s) => s.activeView)
+  const setActiveView = useUIStore((s) => s.setActiveView)
 
   return (
     <div className="flex h-screen flex-col">
       <div className="flex items-center justify-between border-b px-4 py-2">
-        <AreaTabs />
+        <div className="flex items-center gap-2">
+          <AreaTabs />
+          <button
+            type="button"
+            onClick={() => setActiveView(activeView === 'focus' ? 'canvas' : 'focus')}
+            aria-pressed={activeView === 'focus'}
+            className={`border px-3 py-1 ${activeView === 'focus' ? 'bg-black text-white' : ''}`}
+          >
+            Focus screen
+          </button>
+        </div>
         <div className="flex items-center gap-2 text-sm">
           <span>{email}</span>
           <button type="button" onClick={() => supabase.auth.signOut()} className="border px-2 py-1">
@@ -69,6 +82,8 @@ function Workspace({ email }: { email: string }) {
             Try again
           </button>
         </div>
+      ) : activeView === 'focus' ? (
+        <FocusScreen />
       ) : areas.length === 0 ? (
         <p className="p-4 text-gray-500">No areas yet — create one above to get started.</p>
       ) : (

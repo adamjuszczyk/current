@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useBlocks } from '../lib/blocks'
 import { useCreateNote, useNotes } from '../lib/notes'
 import { settled } from '../lib/settled'
@@ -40,6 +40,27 @@ export function Canvas({ areaId }: { areaId: string }) {
   const popupContext = useUIStore((s) => s.popupContext)
   const openPopup = useUIStore((s) => s.openPopup)
   const closePopup = useUIStore((s) => s.closePopup)
+  const scrollToBlockId = useUIStore((s) => s.scrollToBlockId)
+  const clearScrollTarget = useUIStore((s) => s.clearScrollTarget)
+
+  // 5.5: the Focus screen sets scrollToBlockId and switches to this Area;
+  // once that block's row is actually loaded here, scroll it into view and
+  // clear the target. If blocks hasn't loaded it yet (a fresh Area query
+  // still in flight), this simply does nothing and retries itself the next
+  // time `blocks` changes, rather than giving up on a not-yet-there block.
+  useEffect(() => {
+    if (!scrollToBlockId) return
+    const target = blocks.find((b) => b.id === scrollToBlockId)
+    if (!target) return
+    const el = scrollRef.current
+    if (el) {
+      el.scrollTo({
+        left: Math.max(0, target.x - el.clientWidth / 2 + NEW_BLOCK_HALF_WIDTH),
+        top: Math.max(0, target.y - el.clientHeight / 2 + NEW_BLOCK_HALF_HEIGHT),
+      })
+    }
+    clearScrollTarget()
+  }, [scrollToBlockId, blocks, clearScrollTarget])
 
   function handleAddBlock() {
     const el = scrollRef.current

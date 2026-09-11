@@ -92,6 +92,11 @@ export function BlockCard({ block }: { block: Block }) {
   const waiting = isProjectWaiting(entries)
   const ready = isProjectReady(entries)
   const colorClasses = waiting ? WAITING_CLASSES : statusClasses[block.status]
+  // 5.4: Focused is an outline, deliberately not a badge or a colour —
+  // the opposite choice from 4.8's Ready, which has to be a badge precisely
+  // because it must not blend into a colour state. Waiting and Focused are
+  // mutually exclusive (5.2), so a block is never asked to carry both.
+  const focusedClasses = block.focused ? 'outline outline-2 outline-offset-2 outline-purple-600' : ''
 
   return (
     <div
@@ -99,7 +104,7 @@ export function BlockCard({ block }: { block: Block }) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       style={{ left: pos.x, top: pos.y }}
-      className={`absolute w-40 touch-none cursor-grab select-none rounded p-2 shadow ${colorClasses}`}
+      className={`absolute w-40 touch-none cursor-grab select-none rounded p-2 shadow ${colorClasses} ${focusedClasses}`}
     >
       {block.status === 'upcoming' && !waiting && (
         <span aria-hidden className="absolute right-1 top-1 h-2 w-2 rounded-full bg-yellow-400" />
