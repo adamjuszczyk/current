@@ -59,7 +59,7 @@ function Workspace({ email }: { email: string }) {
             aria-pressed={activeView === 'focus'}
             className={`border px-3 py-1 ${activeView === 'focus' ? 'bg-black text-white' : ''}`}
           >
-            Focus
+            Focus screen
           </button>
         </div>
         <div className="flex items-center gap-2 text-sm">
