@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
-import { useUpdateBlockPosition } from '../lib/blocks'
+import { useBlocks, useUpdateBlockPositions } from '../lib/blocks'
+import { useConnectBlocks, useConnections } from '../lib/connections'
+import { buildComponent } from '../lib/layout'
 import { isProjectReady, isProjectWaiting, useWaitingEntries, type WaitingEntryWithPicks } from '../lib/waiting'
 import { useUIStore } from '../store/uiStore'
 import type { Block, BlockStatus } from '../types'
@@ -36,9 +38,16 @@ export function BlockCard({ block }: { block: Block }) {
   const draggingRef = useRef(false)
   const startRef = useRef({ pointerX: 0, pointerY: 0, blockX: 0, blockY: 0 })
   const lastClickAtRef = useRef<number | null>(null)
-  const updatePosition = useUpdateBlockPosition()
+  const updatePositions = useUpdateBlockPositions()
   const openPopup = useUIStore((s) => s.openPopup)
   const { data: entries = [] } = useWaitingEntries(block.id)
+  const { data: blocks = [] } = useBlocks(block.area_id)
+  const { data: connections = [] } = useConnections(block.area_id)
+  const connectMode = useUIStore((s) => s.connectMode)
+  const connectSourceId = useUIStore((s) => s.connectSourceId)
+  const setConnectSource = useUIStore((s) => s.setConnectSource)
+  const pushError = useUIStore((s) => s.pushError)
+  const connect = useConnectBlocks(block.area_id)
 
   useEffect(() => {
     if (!draggingRef.current) setPos({ x: block.x, y: block.y })
@@ -75,7 +84,44 @@ export function BlockCard({ block }: { block: Block }) {
       // double-click — two quick drags must never open the popup.
       lastClickAtRef.current = null
       if (finalPos.x !== block.x || finalPos.y !== block.y) {
-        updatePosition.mutate({ id: block.id, areaId: block.area_id, x: finalPos.x, y: finalPos.y })
+        const moveDx = finalPos.x - block.x
+        const moveDy = finalPos.y - block.y
+        // 6.6: a connected block drags its whole component rigidly — the
+        // identical delta applied to every block reachable through any
+        // connection, in either direction, persisted together. A block
+        // with zero connections is its own component of one, so this is
+        // just its own single-row update, same as before Phase 6.
+        const edges = connections.map((c) => ({ source_id: c.source_id, target_id: c.target_id }))
+        const component = buildComponent(block.id, edges)
+        const updates =
+          component.size > 1
+            ? blocks
+                .filter((b) => component.has(b.id))
+                .map((b) =>
+                  b.id === block.id
+                    ? { id: b.id, x: finalPos.x, y: finalPos.y }
+                    : { id: b.id, x: b.x + moveDx, y: b.y + moveDy },
+                )
+            : [{ id: block.id, x: finalPos.x, y: finalPos.y }]
+        updatePositions.mutate({ areaId: block.area_id, updates })
+      }
+      return
+    }
+
+    // 6.1-6.3: click-to-connect. A qualifying click while connect mode is
+    // active never opens the edit popup — the first click picks a source,
+    // the second (on a different block) attempts the connection and
+    // always clears the pending selection, whether it succeeded or was
+    // refused.
+    if (connectMode) {
+      if (connectSourceId === null) {
+        setConnectSource(block.id)
+      } else if (connectSourceId === block.id) {
+        setConnectSource(null)
+      } else {
+        const sourceId = connectSourceId
+        setConnectSource(null)
+        void connect({ sourceId, targetId: block.id, blocks, connections, onRefused: pushError })
       }
       return
     }
@@ -97,6 +143,9 @@ export function BlockCard({ block }: { block: Block }) {
   // because it must not blend into a colour state. Waiting and Focused are
   // mutually exclusive (5.2), so a block is never asked to carry both.
   const focusedClasses = block.focused ? 'outline outline-2 outline-offset-2 outline-purple-600' : ''
+  // 6.1-6.3: the pending source of a connection currently being made,
+  // visually distinct so the second click's target is obvious.
+  const connectSelectedClasses = connectSourceId === block.id ? 'ring-4 ring-offset-2 ring-emerald-500' : ''
 
   return (
     <div
@@ -104,7 +153,7 @@ export function BlockCard({ block }: { block: Block }) {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       style={{ left: pos.x, top: pos.y }}
-      className={`absolute w-40 touch-none cursor-grab select-none rounded p-2 shadow ${colorClasses} ${focusedClasses}`}
+      className={`absolute w-40 touch-none select-none rounded p-2 shadow ${connectMode ? 'cursor-pointer' : 'cursor-grab'} ${colorClasses} ${focusedClasses} ${connectSelectedClasses}`}
     >
       {block.status === 'upcoming' && !waiting && (
         <span aria-hidden className="absolute right-1 top-1 h-2 w-2 rounded-full bg-yellow-400" />

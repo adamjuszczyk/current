@@ -4,7 +4,7 @@ import { supabase } from './supabase'
 
 // Server state for Blocks, through TanStack Query — same pattern as
 // src/lib/areas.ts. Scoped per Area since that's always how they're read.
-const blocksKey = (areaId: string) => ['blocks', areaId]
+export const blocksKey = (areaId: string) => ['blocks', areaId]
 
 // 5.5: every Focused block across every Area — the Focus screen's own
 // query, separate from the per-Area blocksKey above since it deliberately
@@ -76,14 +76,25 @@ export function useCreateBlock() {
   })
 }
 
-// Persists a Block's position on drag-drop (3.2). Nothing else about a
-// Block changes here — status/name editing is Phase 4.
-export function useUpdateBlockPosition() {
+// Persists one or more Blocks' positions on drag-drop (3.2, and 6.6's
+// whole-component rigid drag). A lone, unconnected block's drag is just a
+// one-entry batch; a connected block's drag writes every component member
+// together, in one mutation, so a partial failure can't leave the shape
+// distorted.
+export function useUpdateBlockPositions() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, x, y }: { id: string; areaId: string; x: number; y: number }) => {
-      const { error } = await supabase.from('blocks').update({ x, y }).eq('id', id)
-      if (error) throw error
+    mutationFn: async ({
+      updates,
+    }: {
+      areaId: string
+      updates: { id: string; x: number; y: number }[]
+    }) => {
+      const results = await Promise.all(
+        updates.map((u) => supabase.from('blocks').update({ x: u.x, y: u.y }).eq('id', u.id)),
+      )
+      const failed = results.find((r) => r.error)
+      if (failed?.error) throw failed.error
     },
     onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: blocksKey(variables.areaId) }),
   })
