@@ -4,6 +4,7 @@ import { useBlocks, useDeleteBlock, useUpdateBlock } from '../lib/blocks'
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '../lib/tasks'
 import { settled } from '../lib/settled'
 import type { BlockStatus, Task } from '../types'
+import { AutoGrowTextarea } from './AutoGrowTextarea'
 import { useConfirm } from './confirmContext'
 import { Popup } from './Popup'
 
@@ -65,6 +66,14 @@ export function BlockEditPopup({
     setNewTaskText('')
   }
 
+  // Enter adds the task (v1's verified behaviour); Shift+Enter inserts a
+  // newline instead, so multi-line entry still works before submitting.
+  function handleNewTaskKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey) return
+    event.preventDefault()
+    event.currentTarget.form?.requestSubmit()
+  }
+
   async function handleDeleteTask(task: Task) {
     const confirmed = await confirm(`Delete task "${task.text}"?`)
     if (!confirmed) return
@@ -119,14 +128,14 @@ export function BlockEditPopup({
           ))}
 
           <form onSubmit={handleAddTask} className="mt-1 flex gap-2">
-            <input
-              type="text"
+            <AutoGrowTextarea
               value={newTaskText}
               onChange={(e) => setNewTaskText(e.target.value)}
+              onKeyDown={handleNewTaskKeyDown}
               placeholder="Add a task"
               className="flex-1 border px-2 py-1"
             />
-            <button type="submit" disabled={createTask.isPending} className="border px-2 py-1">
+            <button type="submit" disabled={createTask.isPending} className="self-start border px-2 py-1">
               Add
             </button>
           </form>
@@ -166,22 +175,21 @@ function TaskRow({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-start gap-2">
       <input
         type="checkbox"
         checked={task.completed}
         onChange={(e) => onToggle(e.target.checked)}
         aria-label={`Mark "${task.text}" complete`}
+        className="mt-2"
       />
-      <input
-        type="text"
+      <AutoGrowTextarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={commitText}
-        onKeyDown={blurOnEnter}
         className={`flex-1 border px-2 py-1 ${task.completed ? 'text-gray-400 line-through' : ''}`}
       />
-      <button type="button" onClick={onDelete} className="text-red-600">
+      <button type="button" onClick={onDelete} className="self-start text-red-600">
         Delete
       </button>
     </div>
