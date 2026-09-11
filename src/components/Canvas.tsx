@@ -139,6 +139,7 @@ export function Canvas({ areaId }: { areaId: string }) {
               type="checkbox"
               checked={visibleStatuses[status]}
               onChange={() => toggleVisibleStatus(status)}
+              aria-label={`Show ${status} blocks`}
             />
             {status}
           </label>
