@@ -2,23 +2,40 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Note } from '../types'
 import { supabase } from './supabase'
 
-// Server state for Notes, through TanStack Query — same pattern as
-// src/lib/blocks.ts. Scoped per Area since that's always how they're read.
-const notesKey = (areaId: string) => ['notes', areaId]
+// A Note has exactly one parent (notes_one_parent, added in 0002_v2.sql):
+// an Area (free notes, today's only UI) or a Block (project notes, wired
+// up by Phase 3's project canvas). These hooks take whichever parent a
+// caller has, so the same code path already works for both once Phase 3
+// starts creating block-level notes — nothing here renders that UI yet.
+export type NoteParent = { areaId: string } | { blockId: string }
 
-export function useNotes(areaId: string | null) {
+export function noteParent(note: Note): NoteParent {
+  return note.area_id !== null ? { areaId: note.area_id } : { blockId: note.block_id as string }
+}
+
+function parentColumn(parent: NoteParent): { column: 'area_id' | 'block_id'; value: string } {
+  return 'areaId' in parent ? { column: 'area_id', value: parent.areaId } : { column: 'block_id', value: parent.blockId }
+}
+
+const notesKey = (parent: NoteParent) => {
+  const { column, value } = parentColumn(parent)
+  return ['notes', column, value]
+}
+
+export function useNotes(parent: NoteParent | null) {
   return useQuery({
-    queryKey: notesKey(areaId ?? ''),
+    queryKey: parent ? notesKey(parent) : ['notes', 'none', ''],
     queryFn: async () => {
+      const { column, value } = parentColumn(parent as NoteParent)
       const { data, error } = await supabase
         .from('notes')
         .select('*')
-        .eq('area_id', areaId as string)
+        .eq(column, value)
         .order('created_at', { ascending: true })
       if (error) throw error
       return data as Note[]
     },
-    enabled: areaId !== null,
+    enabled: parent !== null,
   })
 }
 
@@ -27,12 +44,17 @@ export function useNotes(areaId: string | null) {
 export function useCreateNote() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ areaId, x, y }: { areaId: string; x: number; y: number }) => {
-      const { data, error } = await supabase.from('notes').insert({ area_id: areaId, x, y }).select().single()
+    mutationFn: async ({ parent, x, y }: { parent: NoteParent; x: number; y: number }) => {
+      const { column, value } = parentColumn(parent)
+      const { data, error } = await supabase
+        .from('notes')
+        .insert({ [column]: value, x, y })
+        .select()
+        .single()
       if (error) throw error
       return data as Note
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.areaId) }),
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.parent) }),
   })
 }
 
@@ -40,11 +62,11 @@ export function useCreateNote() {
 export function useUpdateNotePosition() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, x, y }: { id: string; areaId: string; x: number; y: number }) => {
+    mutationFn: async ({ id, x, y }: { id: string; parent: NoteParent; x: number; y: number }) => {
       const { error } = await supabase.from('notes').update({ x, y }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.areaId) }),
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.parent) }),
   })
 }
 
@@ -53,11 +75,11 @@ export function useUpdateNotePosition() {
 export function useUpdateNoteContent() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, content }: { id: string; areaId: string; content: string }) => {
+    mutationFn: async ({ id, content }: { id: string; parent: NoteParent; content: string }) => {
       const { error } = await supabase.from('notes').update({ content }).eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.areaId) }),
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.parent) }),
   })
 }
 
@@ -66,10 +88,10 @@ export function useUpdateNoteContent() {
 export function useDeleteNote() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id }: { id: string; areaId: string }) => {
+    mutationFn: async ({ id }: { id: string; parent: NoteParent }) => {
       const { error } = await supabase.from('notes').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.areaId) }),
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: notesKey(variables.parent) }),
   })
 }
