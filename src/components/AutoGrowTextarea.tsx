@@ -16,7 +16,11 @@ export function AutoGrowTextarea({
     const el = ref.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = `${el.scrollHeight}px`
+    // Tailwind's preflight makes this a border box, so style.height sets
+    // the border box while scrollHeight describes the content box — add
+    // the border width back or a bordered instance renders short by it.
+    const borderHeight = el.offsetHeight - el.clientHeight
+    el.style.height = `${el.scrollHeight + borderHeight}px`
   }, [value])
 
   return (

@@ -66,6 +66,14 @@ export function BlockEditPopup({
     setNewTaskText('')
   }
 
+  // Enter adds the task (v1's verified behaviour); Shift+Enter inserts a
+  // newline instead, so multi-line entry still works before submitting.
+  function handleNewTaskKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey) return
+    event.preventDefault()
+    event.currentTarget.form?.requestSubmit()
+  }
+
   async function handleDeleteTask(task: Task) {
     const confirmed = await confirm(`Delete task "${task.text}"?`)
     if (!confirmed) return
@@ -123,6 +131,7 @@ export function BlockEditPopup({
             <AutoGrowTextarea
               value={newTaskText}
               onChange={(e) => setNewTaskText(e.target.value)}
+              onKeyDown={handleNewTaskKeyDown}
               placeholder="Add a task"
               className="flex-1 border px-2 py-1"
             />
