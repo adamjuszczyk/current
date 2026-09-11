@@ -23,7 +23,11 @@ export function useBlocks(areaId: string | null) {
 }
 
 // Creates a Block plus, optionally, the Tasks quick-captured alongside it
-// in the same popup (3.3). Tasks are plain inserts — no ordering column.
+// in the same popup (3.3). Tasks now live in a List (0002_v2.sql), so a
+// non-empty quick-capture creates one untitled Flat list at the same fixed
+// origin the 2a.1 data migration used for existing blocks, and puts the
+// tasks in it — the two paths agree on purpose. An empty quick-capture
+// creates no list, matching a block with no tasks getting no list.
 export function useCreateBlock() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -48,9 +52,16 @@ export function useCreateBlock() {
       if (error) throw error
 
       if (taskTexts.length > 0) {
+        const { data: list, error: listError } = await supabase
+          .from('lists')
+          .insert({ block_id: block.id, kind: 'flat', title: '', x: 24, y: 24 })
+          .select()
+          .single()
+        if (listError) throw listError
+
         const { error: taskError } = await supabase
           .from('tasks')
-          .insert(taskTexts.map((text) => ({ block_id: block.id, text })))
+          .insert(taskTexts.map((text) => ({ list_id: list.id, text })))
         if (taskError) throw taskError
       }
 

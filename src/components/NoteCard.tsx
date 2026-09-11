@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent } from 'react'
-import { useDeleteNote, useUpdateNoteContent, useUpdateNotePosition } from '../lib/notes'
+import { noteParent, useDeleteNote, useUpdateNoteContent, useUpdateNotePosition } from '../lib/notes'
 import { settled } from '../lib/settled'
 import type { Note } from '../types'
 import { AutoGrowTextarea } from './AutoGrowTextarea'
@@ -64,7 +64,7 @@ export function NoteCard({ note, autoFocus }: { note: Note; autoFocus: boolean }
     const finalPos = { x: startRef.current.noteX + dx, y: startRef.current.noteY + dy }
     setPos(finalPos)
     if (Math.hypot(dx, dy) > CLICK_DISTANCE_PX && (finalPos.x !== note.x || finalPos.y !== note.y)) {
-      updatePosition.mutate({ id: note.id, areaId: note.area_id, x: finalPos.x, y: finalPos.y })
+      updatePosition.mutate({ id: note.id, parent: noteParent(note), x: finalPos.x, y: finalPos.y })
     }
   }
 
@@ -80,11 +80,11 @@ export function NoteCard({ note, autoFocus }: { note: Note; autoFocus: boolean }
     if (deletingRef.current) return
     const trimmed = content.trim()
     if (trimmed === '' && !hadContentRef.current) {
-      deleteNote.mutate({ id: note.id, areaId: note.area_id })
+      deleteNote.mutate({ id: note.id, parent: noteParent(note) })
       return
     }
     if (content !== note.content) {
-      updateContent.mutate({ id: note.id, areaId: note.area_id, content })
+      updateContent.mutate({ id: note.id, parent: noteParent(note), content })
     }
   }
 
@@ -100,7 +100,7 @@ export function NoteCard({ note, autoFocus }: { note: Note; autoFocus: boolean }
       commitOnBlur()
       return
     }
-    if (!(await settled(deleteNote.mutateAsync({ id: note.id, areaId: note.area_id }))).ok) {
+    if (!(await settled(deleteNote.mutateAsync({ id: note.id, parent: noteParent(note) }))).ok) {
       // Leaving this stuck true would make every later blur skip
       // commitOnBlur, silently dropping edits to a note that still exists.
       deletingRef.current = false

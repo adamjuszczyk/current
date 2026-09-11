@@ -1,8 +1,9 @@
-// Confirms Phase 0.3's acceptance criterion against the live project:
-// with no session, all four tables return no rows and reject writes, and
-// email signup (which would let a stranger create a second account and
-// pass the owner-UID policy by being a *different* signed-in user) is
-// rejected.
+// Confirms Phase 0.3's and Phase 2a.2's acceptance criteria against the
+// live project: with no session, all eight tables (the original four plus
+// 0002_v2.sql's lists/connections/waiting_entries/waiting_entry_tasks)
+// return no rows and reject writes, and email signup (which would let a
+// stranger create a second account and pass the owner-UID policy by being
+// a *different* signed-in user) is rejected.
 //
 // Usage: npm run verify:rls   (reads VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY from .env)
 //
@@ -32,8 +33,19 @@ const isPostgrestError = (error) => typeof error?.code === 'string' && error.cod
 const writeProbes = {
   areas: { name: 'rls-probe' },
   blocks: { area_id: '00000000-0000-0000-0000-000000000000', name: 'rls-probe', x: 0, y: 0 },
-  tasks: { block_id: '00000000-0000-0000-0000-000000000000', text: 'rls-probe' },
+  tasks: { list_id: '00000000-0000-0000-0000-000000000000', text: 'rls-probe' },
   notes: { area_id: '00000000-0000-0000-0000-000000000000', x: 0, y: 0 },
+  lists: { block_id: '00000000-0000-0000-0000-000000000000', kind: 'flat', x: 0, y: 0 },
+  connections: {
+    area_id: '00000000-0000-0000-0000-000000000000',
+    source_id: '00000000-0000-0000-0000-000000000001',
+    target_id: '00000000-0000-0000-0000-000000000002',
+  },
+  waiting_entries: { block_id: '00000000-0000-0000-0000-000000000000', kind: 'text' },
+  waiting_entry_tasks: {
+    entry_id: '00000000-0000-0000-0000-000000000000',
+    task_id: '00000000-0000-0000-0000-000000000000',
+  },
 }
 
 let failed = false

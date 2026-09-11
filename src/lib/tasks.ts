@@ -3,34 +3,35 @@ import type { Task } from '../types'
 import { supabase } from './supabase'
 
 // Server state for Tasks, through TanStack Query — same pattern as
-// src/lib/areas.ts and src/lib/blocks.ts. Scoped per Block, and always read
-// as a flat, unordered list — no ordering column exists or is queried.
-const tasksKey = (blockId: string) => ['tasks', blockId]
+// src/lib/areas.ts and src/lib/blocks.ts. Scoped per List (0002_v2.sql
+// moved tasks from blocks into lists), and always read as a flat,
+// unordered list — no ordering column exists or is queried.
+const tasksKey = (listId: string) => ['tasks', listId]
 
-export function useTasks(blockId: string | null) {
+export function useTasks(listId: string | null) {
   return useQuery({
-    queryKey: tasksKey(blockId ?? ''),
+    queryKey: tasksKey(listId ?? ''),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
-        .eq('block_id', blockId as string)
+        .eq('list_id', listId as string)
         .order('created_at', { ascending: true })
       if (error) throw error
       return data as Task[]
     },
-    enabled: blockId !== null,
+    enabled: listId !== null,
   })
 }
 
 export function useCreateTask() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ blockId, text }: { blockId: string; text: string }) => {
-      const { error } = await supabase.from('tasks').insert({ block_id: blockId, text })
+    mutationFn: async ({ listId, text }: { listId: string; text: string }) => {
+      const { error } = await supabase.from('tasks').insert({ list_id: listId, text })
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.blockId) }),
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.listId) }),
   })
 }
 
@@ -41,28 +42,28 @@ export function useUpdateTask() {
   return useMutation({
     mutationFn: async ({
       id,
-      blockId: _blockId,
+      listId: _listId,
       ...changes
     }: {
       id: string
-      blockId: string
+      listId: string
       text?: string
       completed?: boolean
     }) => {
       const { error } = await supabase.from('tasks').update(changes).eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.blockId) }),
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.listId) }),
   })
 }
 
 export function useDeleteTask() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id }: { id: string; blockId: string }) => {
+    mutationFn: async ({ id }: { id: string; listId: string }) => {
       const { error } = await supabase.from('tasks').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.blockId) }),
+    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.listId) }),
   })
 }

@@ -33,7 +33,7 @@ function isPosition(value: unknown): value is { x: number; y: number } {
 export function Canvas({ areaId }: { areaId: string }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const { data: blocks = [], isError: blocksFailed } = useBlocks(areaId)
-  const { data: notes = [], isError: notesFailed } = useNotes(areaId)
+  const { data: notes = [], isError: notesFailed } = useNotes({ areaId })
   const createNote = useCreateNote()
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null)
   const activePopup = useUIStore((s) => s.activePopup)
@@ -62,7 +62,7 @@ export function Canvas({ areaId }: { areaId: string }) {
           y: el.scrollTop + el.clientHeight / 2 - NEW_NOTE_HALF_HEIGHT,
         }
       : { x: 0, y: 0 }
-    const created = await settled(createNote.mutateAsync({ areaId, ...position }))
+    const created = await settled(createNote.mutateAsync({ parent: { areaId }, ...position }))
     if (!created.ok) return
     setFocusNoteId(created.value.id)
   }

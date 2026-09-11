@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent, KeyboardEvent } from 'react'
 import { useBlocks, useDeleteBlock, useUpdateBlock } from '../lib/blocks'
+import { useCreateList, useLists } from '../lib/lists'
 import { useCreateTask, useDeleteTask, useTasks, useUpdateTask } from '../lib/tasks'
 import { settled } from '../lib/settled'
 import type { BlockStatus, Task } from '../types'
@@ -28,11 +29,18 @@ export function BlockEditPopup({
 }) {
   const { data: blocks = [] } = useBlocks(areaId)
   const block = blocks.find((b) => b.id === blockId)
-  const { data: tasks = [] } = useTasks(blockId)
+  // 2a.3's stepping stone: a block has at most one list here (quick-capture
+  // and this popup's own lazy-create both only ever make one untitled Flat
+  // list), so the first one is "the" block's list. Phase 3 generalises this
+  // to many lists of both kinds.
+  const { data: lists = [] } = useLists(blockId)
+  const list = lists[0] ?? null
+  const { data: tasks = [] } = useTasks(list?.id ?? null)
   const [name, setName] = useState(block?.name ?? '')
   const [newTaskText, setNewTaskText] = useState('')
   const updateBlock = useUpdateBlock()
   const deleteBlock = useDeleteBlock()
+  const createList = useCreateList()
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const deleteTask = useDeleteTask()
@@ -62,7 +70,16 @@ export function BlockEditPopup({
     event.preventDefault()
     const trimmed = newTaskText.trim()
     if (!trimmed) return
-    if (!(await settled(createTask.mutateAsync({ blockId, text: trimmed }))).ok) return
+    // A block with no tasks yet has no list (2a.1's migration leaves it
+    // that way too) — the first task added lazily creates the one
+    // untitled Flat list, at the same fixed origin quick-capture uses.
+    let listId = list?.id
+    if (!listId) {
+      const createdList = await settled(createList.mutateAsync({ blockId, kind: 'flat', title: '', x: 24, y: 24 }))
+      if (!createdList.ok) return
+      listId = createdList.value.id
+    }
+    if (!(await settled(createTask.mutateAsync({ listId, text: trimmed }))).ok) return
     setNewTaskText('')
   }
 
@@ -75,9 +92,10 @@ export function BlockEditPopup({
   }
 
   async function handleDeleteTask(task: Task) {
+    if (!list) return
     const confirmed = await confirm(`Delete task "${task.text}"?`)
     if (!confirmed) return
-    await settled(deleteTask.mutateAsync({ id: task.id, blockId }))
+    await settled(deleteTask.mutateAsync({ id: task.id, listId: list.id }))
   }
 
   async function handleDeleteBlock() {
@@ -121,8 +139,8 @@ export function BlockEditPopup({
             <TaskRow
               key={task.id}
               task={task}
-              onToggle={(completed) => updateTask.mutate({ id: task.id, blockId, completed })}
-              onTextChange={(text) => updateTask.mutate({ id: task.id, blockId, text })}
+              onToggle={(completed) => list && updateTask.mutate({ id: task.id, listId: list.id, completed })}
+              onTextChange={(text) => list && updateTask.mutate({ id: task.id, listId: list.id, text })}
               onDelete={() => handleDeleteTask(task)}
             />
           ))}
@@ -135,7 +153,11 @@ export function BlockEditPopup({
               placeholder="Add a task"
               className="flex-1 border px-2 py-1"
             />
-            <button type="submit" disabled={createTask.isPending} className="self-start border px-2 py-1">
+            <button
+              type="submit"
+              disabled={createTask.isPending || createList.isPending}
+              className="self-start border px-2 py-1"
+            >
               Add
             </button>
           </form>
