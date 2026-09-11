@@ -4,11 +4,16 @@ import { useConnections } from '../lib/connections'
 import { useCreateNote, useNotes } from '../lib/notes'
 import { settled } from '../lib/settled'
 import { useUIStore } from '../store/uiStore'
+import type { BlockStatus } from '../types'
 import { BlockCard } from './BlockCard'
 import { BlockCreatePopup } from './BlockCreatePopup'
 import { BlockEditPopup } from './BlockEditPopup'
 import { ConnectionLines } from './ConnectionLines'
 import { NoteCard } from './NoteCard'
+
+// 7.1: the three toggles, in a fixed display order (independent of default
+// value — all three are on by default).
+const FILTER_STATUSES: BlockStatus[] = ['active', 'upcoming', 'done']
 
 // Half the BlockCard's fixed footprint (w-40 ~= 160px, plus padding/shadow),
 // used only to centre a newly-created block under its coordinates (3.5).
@@ -47,6 +52,19 @@ export function Canvas({ areaId }: { areaId: string }) {
   const clearScrollTarget = useUIStore((s) => s.clearScrollTarget)
   const connectMode = useUIStore((s) => s.connectMode)
   const toggleConnectMode = useUIStore((s) => s.toggleConnectMode)
+  const visibleStatuses = useUIStore((s) => s.visibleStatuses)
+  const toggleVisibleStatus = useUIStore((s) => s.toggleVisibleStatus)
+
+  // 7.2: filtering is a view concern only — it changes what's rendered
+  // here, never any block's stored x/y, and never triggers a layout pass.
+  // `blocks` itself (the full, unfiltered list) is still what BlockCard's
+  // own drag/connect logic reads via its own useBlocks/useConnections
+  // calls, so hiding a block never disturbs its component's positions.
+  // Passing this filtered list to ConnectionLines (rather than filtering
+  // the connections array directly) is what hides a connection touching a
+  // hidden block "for free": ConnectionLines looks up each endpoint by id
+  // and silently skips any line whose endpoint isn't in the map.
+  const visibleBlocks = blocks.filter((b) => visibleStatuses[b.status])
 
   // 5.5: the Focus screen sets scrollToBlockId and switches to this Area;
   // once that block's row is actually loaded here, scroll it into view and
@@ -114,6 +132,20 @@ export function Canvas({ areaId }: { areaId: string }) {
         </button>
       </div>
 
+      <div className="flex gap-3 border-b px-4 py-2 text-sm">
+        {FILTER_STATUSES.map((status) => (
+          <label key={status} className="flex items-center gap-1 capitalize">
+            <input
+              type="checkbox"
+              checked={visibleStatuses[status]}
+              onChange={() => toggleVisibleStatus(status)}
+              aria-label={`Show ${status} blocks`}
+            />
+            {status}
+          </label>
+        ))}
+      </div>
+
       {connectMode && (
         <p className="border-b bg-blue-50 px-4 py-1 text-xs text-blue-900">
           Click a block, then another in this Area to connect them (left to right, source to target). Click the
@@ -132,8 +164,8 @@ export function Canvas({ areaId }: { areaId: string }) {
       )}
 
       <div ref={scrollRef} className="relative flex-1 overflow-auto">
-        <ConnectionLines areaId={areaId} blocks={blocks} connections={connections} />
-        {blocks.map((block) => (
+        <ConnectionLines areaId={areaId} blocks={visibleBlocks} connections={connections} />
+        {visibleBlocks.map((block) => (
           <BlockCard key={block.id} block={block} />
         ))}
         {notes.map((note) => (

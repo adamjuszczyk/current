@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { BlockStatus } from '../types'
 
 // Transient UI state only — which popup is open, which Area tab is active,
 // and any write failures currently being shown. No persisted or server data
@@ -43,6 +44,15 @@ interface UIState {
   toggleConnectMode: () => void
   setConnectSource: (id: string | null) => void
 
+  // 7.1: three independent on/off toggles on the Area canvas, all on by
+  // default, controlling which blocks (and, by extension, which
+  // connections — 7.2) are visible. Transient only: not persisted, not
+  // per-Area — the spec asks for toggles, not remembered ones. No
+  // Waiting/Focused toggle here; those distinctions are carried by the
+  // Visuals from Phases 4, 5 and 7 instead.
+  visibleStatuses: Record<BlockStatus, boolean>
+  toggleVisibleStatus: (status: BlockStatus) => void
+
   errors: UIError[]
   pushError: (message: string) => void
   dismissError: (id: number) => void
@@ -70,6 +80,10 @@ export const useUIStore = create<UIState>((set) => ({
   connectSourceId: null,
   toggleConnectMode: () => set((state) => ({ connectMode: !state.connectMode, connectSourceId: null })),
   setConnectSource: (id) => set({ connectSourceId: id }),
+
+  visibleStatuses: { active: true, upcoming: true, done: true },
+  toggleVisibleStatus: (status) =>
+    set((state) => ({ visibleStatuses: { ...state.visibleStatuses, [status]: !state.visibleStatuses[status] } })),
 
   errors: [],
   pushError: (message) =>

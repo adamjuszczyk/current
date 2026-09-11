@@ -3,6 +3,8 @@ import type { PointerEvent } from 'react'
 import { useBlocks, useUpdateBlockPositions } from '../lib/blocks'
 import { useConnectBlocks, useConnections } from '../lib/connections'
 import { buildComponent } from '../lib/layout'
+import { useLists } from '../lib/lists'
+import { useNotes } from '../lib/notes'
 import { isProjectReady, isProjectWaiting, useWaitingEntries, type WaitingEntryWithPicks } from '../lib/waiting'
 import { useUIStore } from '../store/uiStore'
 import type { Block, BlockStatus } from '../types'
@@ -41,6 +43,8 @@ export function BlockCard({ block }: { block: Block }) {
   const updatePositions = useUpdateBlockPositions()
   const openPopup = useUIStore((s) => s.openPopup)
   const { data: entries = [] } = useWaitingEntries(block.id)
+  const { data: lists = [] } = useLists(block.id)
+  const { data: notes = [] } = useNotes({ blockId: block.id })
   const { data: blocks = [] } = useBlocks(block.area_id)
   const { data: connections = [] } = useConnections(block.area_id)
   const connectMode = useUIStore((s) => s.connectMode)
@@ -137,6 +141,13 @@ export function BlockCard({ block }: { block: Block }) {
 
   const waiting = isProjectWaiting(entries)
   const ready = isProjectReady(entries)
+  // 7.3: a block holding at least one List or Note is "content", distinct
+  // from one that's still just a name. Tasks only exist inside Lists, so
+  // this is the whole test — a task implies a list, and an empty list still
+  // counts, since the spec names lists themselves as content. Waiting
+  // entries deliberately don't count — Waiting already has its own card
+  // and colour (4.6/4.7).
+  const hasContent = lists.length > 0 || notes.length > 0
   const colorClasses = waiting ? WAITING_CLASSES : statusClasses[block.status]
   // 5.4: Focused is an outline, deliberately not a badge or a colour —
   // the opposite choice from 4.8's Ready, which has to be a badge precisely
@@ -157,6 +168,17 @@ export function BlockCard({ block }: { block: Block }) {
     >
       {block.status === 'upcoming' && !waiting && (
         <span aria-hidden className="absolute right-1 top-1 h-2 w-2 rounded-full bg-yellow-400" />
+      )}
+      {/* 7.3: content marker — top-left, so it can't be confused with
+          Upcoming's dot (top-right), Ready's badge (bottom-right), or
+          Focused's outline (whole card). Several of these can legitimately
+          appear on the same block at once. */}
+      {hasContent && (
+        <span
+          aria-label="Has content"
+          title="Has a list or a note"
+          className="absolute left-1 top-1 h-2 w-2 rounded-full bg-slate-800"
+        />
       )}
       {/* 4.8: Ready is a distinct badge layered on the Waiting treatment,
           deliberately not another outline, so it can't blend into 4.7's
