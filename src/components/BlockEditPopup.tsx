@@ -4,12 +4,15 @@ import { useBlocks, useDeleteBlock, useUpdateBlock } from '../lib/blocks'
 import { useLists } from '../lib/lists'
 import { useCreateNote, useNotes } from '../lib/notes'
 import { settled } from '../lib/settled'
+import { useUIStore } from '../store/uiStore'
+import { describeOutstanding, isProjectReady, isProjectWaiting, useDeleteWaitingEntry, useWaitingEntries } from '../lib/waiting'
 import type { BlockStatus } from '../types'
 import { useConfirm } from './confirmContext'
 import { ListCard } from './ListCard'
 import { ListCreatePopup } from './ListCreatePopup'
 import { NoteCard } from './NoteCard'
 import { Popup } from './Popup'
+import { WaitingEntryCreatePopup } from './WaitingEntryCreatePopup'
 
 const STATUSES: BlockStatus[] = ['upcoming', 'active', 'done']
 
@@ -60,13 +63,17 @@ export function BlockEditPopup({
   const block = blocks.find((b) => b.id === blockId)
   const { data: lists = [], isError: listsFailed } = useLists(blockId)
   const { data: notes = [], isError: notesFailed } = useNotes({ blockId })
+  const { data: entries = [], isError: entriesFailed } = useWaitingEntries(blockId)
   const [name, setName] = useState(block?.name ?? '')
   const [focusNoteId, setFocusNoteId] = useState<string | null>(null)
   const [listPopupPosition, setListPopupPosition] = useState<{ x: number; y: number } | null>(null)
+  const [waitingPopupOpen, setWaitingPopupOpen] = useState(false)
   const canvasRef = useRef<HTMLDivElement>(null)
   const updateBlock = useUpdateBlock()
   const deleteBlock = useDeleteBlock()
   const createNote = useCreateNote()
+  const deleteWaitingEntry = useDeleteWaitingEntry()
+  const pushError = useUIStore((s) => s.pushError)
   const confirm = useConfirm()
 
   // The block was deleted from elsewhere while this popup was open.
@@ -84,9 +91,30 @@ export function BlockEditPopup({
     updateBlock.mutate({ id: blockId, areaId, name: trimmed })
   }
 
+  // 4.5: a project can't leave Active while it's genuinely Waiting — holding
+  // at least one entry that hasn't reached Ready (4.4). describeOutstanding
+  // returns one reason per non-Ready entry and [] once every entry is Ready
+  // (or there are none), so that alone is the gate; a project with zero
+  // entries was never Waiting in the first place and is refused nothing.
   function handleStatusChange(status: BlockStatus) {
     if (status === blockStatus) return
+    if (blockStatus === 'active' && status !== 'active') {
+      const outstanding = describeOutstanding(entries)
+      if (outstanding.length > 0) {
+        pushError(`Can't change status off Active while still Waiting: ${outstanding.join('; ')}.`)
+        return
+      }
+    }
     updateBlock.mutate({ id: blockId, areaId, status })
+  }
+
+  // 4.9: deleting a Waiting entry directly, gated by the confirm dialog —
+  // distinct from a pick disappearing because its task was deleted at the
+  // task's own source (3.5, ListCard), which never raises a second one.
+  async function handleDeleteEntry(entryId: string) {
+    const confirmed = await confirm('Delete this Waiting entry?')
+    if (!confirmed) return
+    await settled(deleteWaitingEntry.mutateAsync({ id: entryId, blockId }))
   }
 
   function handleAddList() {
@@ -124,8 +152,11 @@ export function BlockEditPopup({
     onClose()
   }
 
+  const failedLabels = [listsFailed && 'lists', notesFailed && 'notes', entriesFailed && 'Waiting entries'].filter(
+    (label): label is string => typeof label === 'string',
+  )
   const loadFailureLabel =
-    listsFailed && notesFailed ? 'lists or notes' : listsFailed ? 'lists' : notesFailed ? 'notes' : null
+    failedLabels.length === 0 ? null : failedLabels.length === 1 ? failedLabels[0] : failedLabels.join(' or ')
 
   return (
     <Popup onClose={onClose} contentClassName={CONTENT_CLASSNAME} contentStyle={CONTENT_STYLE}>
@@ -173,6 +204,57 @@ export function BlockEditPopup({
             empty.
           </p>
         )}
+
+        <div className="flex flex-col gap-2 border-t pt-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">
+              Waiting{entries.length > 0 ? ` (${entries.length})` : ''}
+              {isProjectWaiting(entries) && (
+                <span className={`ml-2 text-xs ${isProjectReady(entries) ? 'text-green-700' : 'text-gray-500'}`}>
+                  {isProjectReady(entries) ? 'Ready' : 'Not ready'}
+                </span>
+              )}
+            </p>
+            {blockStatus === 'active' && (
+              <button type="button" onClick={() => setWaitingPopupOpen(true)} className="border px-2 py-1 text-xs">
+                + Waiting entry
+              </button>
+            )}
+          </div>
+
+          {entries.length === 0 && <p className="text-xs text-gray-500">Not waiting on anything.</p>}
+
+          {entries.length > 0 && (
+            <ul className="flex flex-col gap-1">
+              {entries.map((entry) => (
+                <li key={entry.id} className="flex items-start justify-between gap-2 rounded border px-2 py-1 text-xs">
+                  <div className="min-w-0 flex-1">
+                    {entry.kind === 'text' ? (
+                      <span>{entry.text}</span>
+                    ) : entry.picks.length === 0 ? (
+                      <span className="text-gray-400">(no tasks picked)</span>
+                    ) : (
+                      <ul className="flex flex-col gap-0.5">
+                        {entry.picks.map((pick) => (
+                          <li key={pick.taskId} className={pick.completed ? 'text-gray-400 line-through' : ''}>
+                            {pick.taskText}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteEntry(entry.id)}
+                    className="shrink-0 text-red-600"
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div ref={canvasRef} className="relative flex-1 overflow-auto bg-gray-50">
@@ -186,6 +268,9 @@ export function BlockEditPopup({
 
       {listPopupPosition && (
         <ListCreatePopup blockId={blockId} position={listPopupPosition} onClose={() => setListPopupPosition(null)} />
+      )}
+      {waitingPopupOpen && (
+        <WaitingEntryCreatePopup areaId={areaId} blockId={blockId} onClose={() => setWaitingPopupOpen(false)} />
       )}
     </Popup>
   )
