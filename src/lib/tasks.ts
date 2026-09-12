@@ -36,7 +36,12 @@ export function useCreateTask() {
 }
 
 // Covers both inline text edits and the complete-toggle (4.3) — same shape,
-// just different fields changed.
+// just different fields changed. A task's completed state can be shown on
+// any project's Waiting card, via a pick — not just its own list — so a
+// completion toggle also invalidates every waiting-entries query (Phase 4),
+// not only this task's own list. Broad rather than scoped to the one
+// project actually holding the pick, since which project(s) that is isn't
+// known here without an extra read, and the extra invalidations are cheap.
 export function useUpdateTask() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -53,7 +58,10 @@ export function useUpdateTask() {
       const { error } = await supabase.from('tasks').update(changes).eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.listId) }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: tasksKey(variables.listId) })
+      queryClient.invalidateQueries({ queryKey: ['waiting-entries'] })
+    },
   })
 }
 
@@ -64,6 +72,13 @@ export function useDeleteTask() {
       const { error } = await supabase.from('tasks').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_data, variables) => queryClient.invalidateQueries({ queryKey: tasksKey(variables.listId) }),
+    // A deleted task can still be a non-last pick on some other project's
+    // entry (removeEmptiedWaitingEntries only removes the entry when it
+    // was the *last* pick) — that entry's own waiting-entries query needs
+    // invalidating too, same reasoning as useUpdateTask above.
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: tasksKey(variables.listId) })
+      queryClient.invalidateQueries({ queryKey: ['waiting-entries'] })
+    },
   })
 }
