@@ -1,5 +1,20 @@
 # DECISIONS.md — Current
 
+Format for all new entries:
+
+```
+## [n] [One-line summary]
+Severity: blocking | deferred
+Chunk: [n]
+What happened: [the situation, with full reasoning]
+A competent default would: [what anything competent would have
+  just done here] — doesn't apply because: [why this is a real
+  decision and not a default]
+Cost of deferral: [what gets redone if the answer goes against
+  the provisional path] — blocking entries: n/a
+Answer: [mine]
+```
+
 Decisions Adam made in earlier builds that still constrain the code. Each entry is answered: what was decided, and the answer. Decisions that have since been overtaken, or whose effect is finished, are not kept here (the story is in `HISTORY.md`). A new question that isn't settled by an entry here or by the spec is not settled with a default — it stops the build and is asked.
 
 Every entry here is **answered**. There are no blocking (unanswered) entries.

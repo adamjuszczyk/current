@@ -664,3 +664,19 @@ Entries before 2026-09-10 predate the v1/v2 split: "TASKS.md" in them means the 
   * **The largest avoidable cost was rebuilding the verification harness from scratch in six separate phases**, each rebuild reintroducing bugs the last had fixed. It was never committed — the right instinct for `package.json`, the wrong one for the harness itself.
   * **This log's own most valuable convention is recording checks that lied.** Keep it verbatim in v3.
   **Nothing is open.** v2 is complete, merged, verified, and in use; the next step is v3's spec.
+
+# 2026-09-29 — Removed from CONTEXT.md (reviewer-rules block, escalation criteria, open question)
+
+Removed on Adam's instruction when the BUILD.md step 3 rules block was added. Text is verbatim.
+
+The placeholder note under "Reviewer's own rules", superseded because the block has been supplied:
+
+> **PENDING — the BUILD.md step 3 "Reviewer's own rules" block has not been added.** The session request contained a placeholder (`[paste the Reviewer's own rules block from BUILD.md step 3]`) instead of the text, and `BUILD.md` is not in the repository on any branch or in its history. Add that block here word for word once it is supplied; nothing above stands in for it.
+
+The "Phase 2b specifically" sentence from the first "Always escalate" bullet of the Escalation criteria (Phase 2b is finished; the standing rule that a migration rewriting live rows needs a confirmed backup immediately before it runs is kept under "Rules discovered during this build"):
+
+> Phase 2b specifically: confirm the live backup exists before it runs, not just before the phase starts — this migration rewrites rows that are in real use, v1's did not.
+
+The consequence clause from the Notes line of "What exists" — an open product question about a possible schema column, which Adam is taking to the next version's list himself:
+
+> so it does not survive a page reload — an intentionally emptied note that is focused and blurred untouched after a reload is discarded

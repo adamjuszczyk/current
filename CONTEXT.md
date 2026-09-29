@@ -1,6 +1,6 @@
 # CONTEXT.md — Current
 
-Current state only. Finished work, build logs and superseded plans live in `HISTORY.md`; answered decisions that still constrain the code live in `DECISIONS.md`. Ceiling: 75 KB, checked by `node scripts/check-context-size.mjs` — when over, move what is no longer true into `HISTORY.md`, don't raise it.
+Current state only. Finished work, build logs and superseded plans live in `HISTORY.md`; decisions that still constrain the code (answered, plus any blocking or deferred entry, in the format at the top of that file) live in `DECISIONS.md`. Ceiling: 75 KB, checked by `node scripts/check-context-size.mjs` — when over, move what is no longer true into `HISTORY.md`, don't raise it.
 
 ## What this is
 
@@ -33,7 +33,7 @@ Area canvas
 - **Block:** `BlockCard` drags by pointer events with capture, no library; a pointer-up under 4 px is a click, two within 400 ms open `BlockEditPopup` (hand-rolled, not native `dblclick`); `x`/`y` are written only when they changed. Status (`upcoming` / `active` / `done`) is set only by explicit buttons — never inferred from tasks.
 - **Block visuals:** Active full blue; Done and Upcoming the same dimmed grey (no CSS filter), Upcoming adds a yellow dot top-right; Waiting dims the Active colour and shows a folded Waiting card; Ready is a badge bottom-right; Focused is a real CSS purple outline; the content marker is a dark dot top-left. Positions differ on purpose so several can show at once.
 - **Block create:** `BlockCreatePopup` — a name and a quick-capture textarea; each non-empty line becomes a Task in one new Flat list at (24, 24); empty capture creates no list.
-- **Notes (Area or project):** `NoteCard` drags by its header strip only. Created empty and focused with no popup; content saves on blur and auto-grows. A note that never held content is silently discarded on blur; a note whose content was cleared survives and needs the confirm-gated Delete. "Ever held content" lives only in client state (`hadContentRef`), so it does not survive a page reload — an intentionally emptied note that is focused and blurred untouched after a reload is discarded. The `NoteParent` union (`{areaId}` | `{blockId}`) lets the same component and hooks serve both levels.
+- **Notes (Area or project):** `NoteCard` drags by its header strip only. Created empty and focused with no popup; content saves on blur and auto-grows. A note that never held content is silently discarded on blur; a note whose content was cleared survives and needs the confirm-gated Delete. "Ever held content" lives only in client state (`hadContentRef`). The `NoteParent` union (`{areaId}` | `{blockId}`) lets the same component and hooks serve both levels.
 - **Expanding text:** `AutoGrowTextarea` sizes to content in both directions, includes the border width, and is used for Note text and every task text field. Area names, Block names and the quick-capture bulk field are plain inputs.
 - **Filter:** three independent Active/Upcoming/Done checkboxes, all on by default, transient, not per-Area. It filters what renders; a connection touching a hidden block is hidden because `ConnectionLines` skips missing endpoints. It never writes `x`/`y` and never touches component membership — dragging a visible connected block still moves its hidden partner.
 - **Content marker:** a block holding at least one List or Note gets the top-left dot (an empty list counts; a Waiting entry alone does not).
@@ -72,13 +72,16 @@ Data and scripts
 
 Always escalate:
 
-* Anything touching the database schema or a migration. Phase 2b specifically: confirm the live backup exists before it runs, not just before the phase starts — this migration rewrites rows that are in real use, v1's did not.
+* Anything touching the database schema or a migration.
 * Anything not explicitly decided in spec or TASKS.md — no guessing at product intent. If something looks like it needs a new open decision beyond the three already resolved, stop and ask rather than picking a default.
 * Anything touching auth. Current has its own dedicated Supabase project — no shared-project data boundary to worry about the way Overload's incident did.
 * Diagnostic or live SQL queries run through the Supabase SQL Editor bypass RLS entirely — that's a property of the SQL Editor itself, confirmed on Overload, not something specific to Overload's schema. Current has no per-row user_id to filter by (RLS here is pinned directly to auth.uid()), so there's no WHERE-clause equivalent of Overload's rule. Prefer the authenticated client over the SQL Editor for diagnostic reads where that's an option. If the SQL Editor is used anyway and returns more than one account's data, that's still a bug — stop immediately, don't investigate further.
 * The builder deleting or overwriting existing data or files unexpectedly during the build — not the app's own confirmed delete features, which are already fully specced.
 * A test failure without an obvious, mechanical fix.
 * Anything that would change scope, cost, or timeline versus TASKS.md.
+* Any migration scripts/check-migration flags. Every destructive one is flagged.
+* Any change beyond the chunk's stated scope in TASKS.md.
+* Anything SPEC.md is ambiguous or silent about.
 
 Proceed without asking:
 
@@ -93,20 +96,14 @@ Note, unchanged from v1 and worth keeping verbatim: for schema and auth, "alread
 
 The reviewer watches a build chunk by chunk. These bind the reviewer, not only the builders.
 
-- Chunks are `TASKS.md`'s phases in order, one phase per builder session, no combining or splitting (v2's Phase 2 was split into 2a and 2b on the reversible/irreversible line).
-- On each builder going idle: read the summary, check it against the escalation criteria, then either start the next chunk or hand the decision to Adam and wait.
-- Read the diff, not the summary. For schema and auth, bring the actual diff every time, even when the decision is already made.
-- Verify independently, not on the report: re-run a builder's checks, run `build`/`lint`, drive the feature in a browser and *look* at it. Every builder has reported a clean verification at least once while shipping something real.
-- Ordinary correctness in a shared primitive is the reviewer's to fix (as with the popup and `AutoGrowTextarea` defects). A new product-intent question is not — escalate it, even when the builder decided it didn't qualify.
-- An irreversible step never starts on the reviewer's say-so. It needs Adam's confirmation immediately before it runs, not merely at some point since the phase began.
-- The reviewer's own actions are in scope for the criteria. Before any push to `main`, check that the migration files are byte-identical between the branch and `main` (empty diff) — or, if they differ, that the change passed `check-migration` or has Adam's go.
-- Start every builder with an explicit `source_revision`; a default branch can hold app code without the plan, or the plan without app code.
-- Tell every builder: never add a file to `supabase/migrations/`; commit and push as soon as the feature compiles; finishing the chunk includes ticking `TASKS.md` and updating `CONTEXT.md`.
-- When two clauses of the plan can't both be true, demonstrate it and escalate — don't pick a reading. The plan being wrong (not the code) happened twice and both were the build's highest-value catches.
-- Record what a limitation is when you hit one (e.g. no way to message a running builder) instead of routing around it; don't use `interrupt_session` when there is no way to follow it with an instruction.
-- Record checks that gave a false result, in the section below, whoever's they were.
-
-> **PENDING — the BUILD.md step 3 "Reviewer's own rules" block has not been added.** The session request contained a placeholder (`[paste the Reviewer's own rules block from BUILD.md step 3]`) instead of the text, and `BUILD.md` is not in the repository on any branch or in its history. Add that block here word for word once it is supplied; nothing above stands in for it.
+- Verify against the real thing. A passing check proves only what it actually touched. If unreachable and passing produce the same signal, the check is wrong.
+- Never fix before understanding the cause.
+- Don't read code to check what a script can check. If no script covers it yet, write one — or verify manually and say that's what happened.
+- Commit verification scripts to scripts/ and run all of them at every chunk boundary, not just this chunk's.
+- Escalate with full reasoning, not a verdict and options.
+- Never write an unconfirmed belief into this file as fact.
+- The shared scripts (check-migration, migration-rules, check-context-size) are never changed during a build. If a chunk changes one, revert that change before merging and say so in the chunk report.
+- At every chunk boundary: update this file, move anything no longer true into HISTORY.md, then compact. Rules discovered during this build are never pruned — they don't stop being true.
 
 ## Checks that lied
 
@@ -129,6 +126,20 @@ A check that returns a plausible value is indistinguishable from one that works.
 - **False failures, the other direction (test bugs, not app bugs):** `text=` locators don't match a controlled `<textarea>`'s value (use the checkbox's `aria-label`); a Note landed on a "Delete list" button at the harness's viewport-centred placement (use `dispatchEvent('click')`); the fixed error banner intercepted clicks on the tabs beneath it; three blocks created back-to-back spawn at the same centre and stack (reposition by SQL and reload); click points must be computed from stored `x`/`y` plus the app's own offsets, not the rendered card's centre; two tasks inserted in one statement share a `created_at`.
 
 ## Rules discovered during this build
+
+Reviewer conduct (moved here from "Reviewer's own rules"; none is covered by that block)
+- Chunks are `TASKS.md`'s phases in order, one phase per builder session, no combining or splitting (v2's Phase 2 was split into 2a and 2b on the reversible/irreversible line).
+- On each builder going idle: read the summary, check it against the escalation criteria, then either start the next chunk or hand the decision to Adam and wait.
+- Read the diff, not the summary. For schema and auth, bring the actual diff every time, even when the decision is already made.
+- Verify independently, not on the report: re-run a builder's checks, run `build`/`lint`, drive the feature in a browser and *look* at it. Every builder has reported a clean verification at least once while shipping something real.
+- Ordinary correctness in a shared primitive is the reviewer's to fix (as with the popup and `AutoGrowTextarea` defects). A new product-intent question is not — escalate it, even when the builder decided it didn't qualify.
+- An irreversible step never starts on the reviewer's say-so. It needs Adam's confirmation immediately before it runs, not merely at some point since the phase began.
+- The reviewer's own actions are in scope for the criteria. Before any push to `main`, check that the migration files are byte-identical between the branch and `main` (empty diff) — or, if they differ, that the change passed `check-migration` or has Adam's go.
+- Start every builder with an explicit `source_revision`; a default branch can hold app code without the plan, or the plan without app code.
+- Tell every builder: never add a file to `supabase/migrations/`; commit and push as soon as the feature compiles; finishing the chunk includes ticking `TASKS.md` and updating `CONTEXT.md`.
+- When two clauses of the plan can't both be true, demonstrate it and escalate — don't pick a reading. The plan being wrong (not the code) happened twice and both were the build's highest-value catches.
+- Record what a limitation is when you hit one (e.g. no way to message a running builder) instead of routing around it; don't use `interrupt_session` when there is no way to follow it with an instruction.
+- Record checks that gave a false result, in the section below, whoever's they were.
 
 Deploy and migrations
 - **No session may ever create a file in `supabase/migrations/`.** A migration file reaching `main` deploys to production by itself. If a chunk seems to need one, stop and ask.
