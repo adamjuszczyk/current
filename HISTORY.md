@@ -680,3 +680,9 @@ The "Phase 2b specifically" sentence from the first "Always escalate" bullet of 
 The consequence clause from the Notes line of "What exists" — an open product question about a possible schema column, which Adam is taking to the next version's list himself:
 
 > so it does not survive a page reload — an intentionally emptied note that is focused and blurred untouched after a reload is discarded
+
+# 2026-09-29 — Removed from CONTEXT.md (harness note replaced)
+
+Replaced on Adam's instruction by "Commit verification scripts to scripts/. Never commit scratch SQL, or anything containing real data, keys or user IDs." Text is verbatim, from the "Verification" group of "Rules discovered during this build". The sentence before it in that bullet, about installing Playwright and `pg` with `npm install --no-save`, was kept in CONTEXT.md.
+
+> never commit `.env`, a harness script or scratch SQL. Known cost, unresolved: the harness was never committed and was rebuilt from scratch in six phases, reintroducing bugs each time.

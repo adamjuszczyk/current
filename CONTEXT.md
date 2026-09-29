@@ -14,7 +14,7 @@ A fuller v2+/vision-scale version of this product exists, but is kept outside th
 - **V2 sandbox — complete and reviewed, closed 2026-09-11.** All 43 items across `TASKS.md`'s eight chunks (1, 2a, 2b, 3, 4, 5, 6, 7) are ticked, each with an acceptance note. Spec: `CURRENT-V2-SANDBOX-SPEC.md`. Still a sandbox with no visual design pass.
 - **Live database:** `0001`, `0002`, `0003` applied. `npm run verify:rls` passes against the live project on all eight tables. `v1_backup.tasks` holds 20 rows (confirmed by Adam) and is unreachable from the anon key (confirmed from outside: `PGRST106`).
 - **`main`** carries the completed build (fast-forwarded 2026-09-12). Later additions on `main`: the migration-guard scripts and `scripts/check-context-size.mjs`.
-- **Open decisions: none.** No build is in progress. The next step is v3's spec, or more daily use — v2 exists because using v1 produced its spec.
+- **Open decisions: none.** No build is in progress. The next step is v3's spec (it will be `SPEC.md`), or more daily use — v2 exists because using v1 produced its spec.
 - **Not built, by design (out of scope for v2):** Vision, Phase and everything on it, theming, any visual design pass, task-level Waiting, shared tasks between blocks, "Today", an explicit next-step pointer, projects-within-projects, zoom/pan, fullscreen/tab mode. A *new* open decision is not settled with a default — stop and ask.
 - **Not installed:** Dexie, vite-plugin-pwa, Recharts — nothing in either spec needs offline storage, installability or charts.
 
@@ -72,15 +72,13 @@ Data and scripts
 
 Always escalate:
 
-* Anything touching the database schema or a migration.
+* Anything touching the database schema or a migration. Any migration scripts/check-migration flags. Every destructive one is flagged.
 * Anything not explicitly decided in spec or TASKS.md — no guessing at product intent. If something looks like it needs a new open decision beyond the three already resolved, stop and ask rather than picking a default.
 * Anything touching auth. Current has its own dedicated Supabase project — no shared-project data boundary to worry about the way Overload's incident did.
 * Diagnostic or live SQL queries run through the Supabase SQL Editor bypass RLS entirely — that's a property of the SQL Editor itself, confirmed on Overload, not something specific to Overload's schema. Current has no per-row user_id to filter by (RLS here is pinned directly to auth.uid()), so there's no WHERE-clause equivalent of Overload's rule. Prefer the authenticated client over the SQL Editor for diagnostic reads where that's an option. If the SQL Editor is used anyway and returns more than one account's data, that's still a bug — stop immediately, don't investigate further.
 * The builder deleting or overwriting existing data or files unexpectedly during the build — not the app's own confirmed delete features, which are already fully specced.
 * A test failure without an obvious, mechanical fix.
-* Anything that would change scope, cost, or timeline versus TASKS.md.
-* Any migration scripts/check-migration flags. Every destructive one is flagged.
-* Any change beyond the chunk's stated scope in TASKS.md.
+* Anything that would change scope, cost, or timeline versus TASKS.md. Any change beyond the chunk's stated scope in TASKS.md.
 * Anything SPEC.md is ambiguous or silent about.
 
 Proceed without asking:
@@ -99,6 +97,7 @@ The reviewer watches a build chunk by chunk. These bind the reviewer, not only t
 - Verify against the real thing. A passing check proves only what it actually touched. If unreachable and passing produce the same signal, the check is wrong.
 - Never fix before understanding the cause.
 - Don't read code to check what a script can check. If no script covers it yet, write one — or verify manually and say that's what happened.
+- Scripts check what they can. Schema and auth changes are read as a diff, and the diff goes into the escalation.
 - Commit verification scripts to scripts/ and run all of them at every chunk boundary, not just this chunk's.
 - Escalate with full reasoning, not a verdict and options.
 - Never write an unconfirmed belief into this file as fact.
@@ -154,7 +153,8 @@ Verification
 - Check a key before using it: the JWT decodes to the right `ref`, `role: anon`, unexpired. A `service_role` key bypasses RLS and would make `verify:rls` pass while proving nothing.
 - Scratch-Postgres harness: `initdb` refuses to run as root and the scratchpad is unreadable to the `postgres` user, so the data directory lives under `/var/lib/postgresql`; every RLS probe runs under `set local role`; the relay translating `/rest/v1/*` into SQL runs each request as `authenticated` with the owner UUID as the JWT claim.
 - Harness rules: throw on any filter operator not implemented; never treat `select`/`order`/`limit`/`offset`/`columns`/`on_conflict` as a filter; alias embed subqueries `sub`, never `x`; assert a list is populated before asserting something is absent from it; when a defect looks surprising, read the generated SQL before believing the harness.
-- Install Playwright and `pg` with `npm install --no-save` and remove them afterward; never commit `.env`, a harness script or scratch SQL. Known cost, unresolved: the harness was never committed and was rebuilt from scratch in six phases, reintroducing bugs each time.
+- Install Playwright and `pg` with `npm install --no-save` and remove them afterward.
+- Commit verification scripts to scripts/. Never commit scratch SQL, or anything containing real data, keys or user IDs.
 - Keep pure logic (`src/lib/layout.ts`) free of React and Supabase so it can be compiled standalone and property-tested against the rule the plan claims.
 
 Code pitfalls
