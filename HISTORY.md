@@ -686,3 +686,9 @@ The consequence clause from the Notes line of "What exists" — an open product 
 Replaced on Adam's instruction by "Commit verification scripts to scripts/. Never commit scratch SQL, or anything containing real data, keys or user IDs." Text is verbatim, from the "Verification" group of "Rules discovered during this build". The sentence before it in that bullet, about installing Playwright and `pg` with `npm install --no-save`, was kept in CONTEXT.md.
 
 > never commit `.env`, a harness script or scratch SQL. Known cost, unresolved: the harness was never committed and was rebuilt from scratch in six phases, reintroducing bugs each time.
+
+# 2026-10-01 — Removed from CONTEXT.md (verify-rls now runs in cloud sessions without a workaround)
+
+Replaced by two "Repo facts" lines: run `node scripts/verify-rls.mjs` directly (its variables come from the cloud environment), and `NODE_USE_ENV_PROXY=1` is already set in the cloud environment. Text is verbatim, from "Repo facts".
+
+> In this container Node 22 does not read `HTTPS_PROXY` for `fetch`: run `NODE_USE_ENV_PROXY=1 npm run verify:rls`.
