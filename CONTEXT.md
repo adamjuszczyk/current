@@ -12,7 +12,7 @@ A fuller v2+/vision-scale version of this product exists, but is kept outside th
 
 - **V1 — complete, live since 2026-09-09.** All 26 items in `TASKS-V1.md` done; acceptance met against the live project. `CURRENT-V1-SANDBOX-SPEC.md` and `TASKS-V1.md` are the record of what v1 was built to; the v2 spec supersedes the v1 spec entirely.
 - **V2 sandbox — complete and reviewed, closed 2026-09-11.** All 43 items across `TASKS.md`'s eight chunks (1, 2a, 2b, 3, 4, 5, 6, 7) are ticked, each with an acceptance note. Spec: `CURRENT-V2-SANDBOX-SPEC.md`. Still a sandbox with no visual design pass.
-- **Live database:** `0001`, `0002`, `0003` applied. `npm run verify:rls` passes against the live project on all eight tables. `v1_backup.tasks` holds 20 rows (confirmed by Adam) and is unreachable from the anon key (confirmed from outside: `PGRST106`).
+- **Live database:** `0001`, `0002`, `0003` applied. `verify-rls` passes against the live project on all eight tables (last run 2026-10-01 from a cloud session: every write refused with PostgREST `42501`, signup refused with `422 signup_disabled`; the key decoded as `role: anon`, `ref: ieszecmiijxkcrxirwuk`). `v1_backup.tasks` holds 20 rows (confirmed by Adam) and is unreachable from the anon key (confirmed from outside: `PGRST106`).
 - **`main`** carries the completed build (fast-forwarded 2026-09-12). Later additions on `main`: the migration-guard scripts and `scripts/check-context-size.mjs`.
 - **Open decisions: none.** No build is in progress. The next step is v3's spec (it will be `SPEC.md`), or more daily use — v2 exists because using v1 produced its spec.
 - **Not built, by design (out of scope for v2):** Vision, Phase and everything on it, theming, any visual design pass, task-level Waiting, shared tasks between blocks, "Today", an explicit next-step pointer, projects-within-projects, zoom/pan, fullscreen/tab mode. A *new* open decision is not settled with a default — stop and ask.
@@ -64,7 +64,8 @@ Data and scripts
 - Supabase project ref `ieszecmiijxkcrxirwuk` — fresh and dedicated; no shared backend or cross-app data access with Overload. The anon key ships publicly in the client bundle by design; RLS is the protection.
 - Commands: `npm run dev`, `npm run build` (`tsc -b && vite build`), `npm run lint` (oxlint), `npm run verify:rls`. Real-client build is about 488 kB; a build with no `.env` is about 201 kB.
 - `.env` is gitignored, `.env.example` is committed empty; `src/lib/supabase.ts` throws if the vars are unset. A fresh container has no `.env`.
-- In this container Node 22 does not read `HTTPS_PROXY` for `fetch`: run `NODE_USE_ENV_PROXY=1 npm run verify:rls`. Playwright uses the pre-installed Chromium via `executablePath`, never `playwright install`.
+- In cloud sessions, run node scripts/verify-rls.mjs directly. Its variables come from the cloud environment, not .env.
+- A fresh container also has no `node_modules`: run `npm ci` before any script that imports a package. `NODE_USE_ENV_PROXY=1` is already set in the cloud environment, so Node's `fetch` honours the proxy. Playwright uses the pre-installed Chromium via `executablePath`, never `playwright install`.
 - Files at the repo root: `CONTEXT.md`, `HISTORY.md`, `DECISIONS.md`, `TASKS.md` (v2 plan, all ticked), `TASKS-V1.md`, `CURRENT-V1-SANDBOX-SPEC.md`, `CURRENT-V2-SANDBOX-SPEC.md`.
 - Sandbox conventions still in force: Tailwind defaults only, Zustand for transient UI state only, no drag-and-drop library, no new dependency without asking.
 
