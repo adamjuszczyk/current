@@ -696,3 +696,17 @@ Replaced by two "Repo facts" lines: run `node scripts/verify-rls.mjs` directly (
 # 2026-10-02 — Vercel preparation session (nothing moved out of CONTEXT.md)
 
 Reviewed `CONTEXT.md` against this session's changes (added `vercel.json`, no code, migration or script changes). Nothing in it stopped being true, so nothing was moved; "Repo facts" gained the `vercel.json`, environment-variable and sign-in entries. Session checks, for the record: `npm run build` passed (488.07 kB JS, real client bundled); `check-context-size`, `check-migration` (no migration changes), `migration-rules.test` (26/26) and `verify-rls` (all eight tables refused, signup 422, key `role: anon`, ref `ieszecmiijxkcrxirwuk`) all exited 0.
+
+# 2026-10-02 — Removed from CONTEXT.md (Vercel deploy confirmed)
+
+Replaced in "Repo facts" by "Deployed on Vercel from main, live and confirmed: https://current-sage-eight.vercel.app." Text is verbatim. The two sub-bullets under it (rewrite, `ignoreCommand`) were left in place.
+
+> - **`vercel.json` exists (added 2026-10-02) — the Vercel deploy is not yet confirmed.** Nothing has been deployed or checked on a live Vercel URL; the file has only been validated as JSON and its two rules exercised locally.
+
+# 2026-10-02 — Superseded wording in CONTEXT.md "Repo facts" (Vercel rewrite confirmed)
+
+The *Rewrite* bullet's last sentence is replaced by "Confirmed on the live deploy: opening a deep route directly works." and a lead-in line ("`vercel.json` at the repo root configures the deploy with two rules:") now groups the two rule bullets under the deploy line. Old sentence, verbatim:
+
+> `vite preview` has its own fallback and doesn't read `vercel.json` — the rewrite can only be confirmed on the live deploy.
+
+The *`ignoreCommand`* bullet is unchanged and still unconfirmed on Vercel; merging PR #7 is the test.
