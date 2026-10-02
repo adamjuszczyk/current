@@ -702,3 +702,11 @@ Reviewed `CONTEXT.md` against this session's changes (added `vercel.json`, no co
 Replaced in "Repo facts" by "Deployed on Vercel from main, live and confirmed: https://current-sage-eight.vercel.app." Text is verbatim. The two sub-bullets under it (rewrite, `ignoreCommand`) were left in place.
 
 > - **`vercel.json` exists (added 2026-10-02) — the Vercel deploy is not yet confirmed.** Nothing has been deployed or checked on a live Vercel URL; the file has only been validated as JSON and its two rules exercised locally.
+
+# 2026-10-02 — Superseded wording in CONTEXT.md "Repo facts" (Vercel rewrite confirmed)
+
+The *Rewrite* bullet's last sentence is replaced by "Confirmed on the live deploy: opening a deep route directly works." and a lead-in line ("`vercel.json` at the repo root configures the deploy with two rules:") now groups the two rule bullets under the deploy line. Old sentence, verbatim:
+
+> `vite preview` has its own fallback and doesn't read `vercel.json` — the rewrite can only be confirmed on the live deploy.
+
+The *`ignoreCommand`* bullet is unchanged and still unconfirmed on Vercel; merging PR #7 is the test.
