@@ -710,3 +710,9 @@ The *Rewrite* bullet's last sentence is replaced by "Confirmed on the live deplo
 > `vite preview` has its own fallback and doesn't read `vercel.json` — the rewrite can only be confirmed on the live deploy.
 
 The *`ignoreCommand`* bullet is unchanged and still unconfirmed on Vercel; merging PR #7 is the test.
+
+# 2026-10-02 — Superseded wording in CONTEXT.md "Repo facts" (docs-only skip confirmed on Vercel)
+
+Merging PR #7 (docs only) to `main` was canceled by Vercel's Ignored Build Step, so `VERCEL_GIT_PREVIOUS_SHA` is populated there and the skip works. This replaced the sentence below in the *`ignoreCommand`* bullet; text verbatim:
+
+> Unconfirmed on Vercel: that `VERCEL_GIT_PREVIOUS_SHA` is populated there — if it isn't, every push builds (safe, never skips).
