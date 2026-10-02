@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/((?!assets/)(?!.*\\.[A-Za-z0-9]+$).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "ignoreCommand": "f=$(git diff --name-only ${VERCEL_GIT_PREVIOUS_SHA:?} HEAD) && [ -n \"$f\" ] && ! echo \"$f\" | grep -qvxE '(CONTEXT|HISTORY|SPEC|TASKS|DECISIONS)\\.md' || exit 1"
+}

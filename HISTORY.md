@@ -692,3 +692,7 @@ Replaced on Adam's instruction by "Commit verification scripts to scripts/. Neve
 Replaced by two "Repo facts" lines: run `node scripts/verify-rls.mjs` directly (its variables come from the cloud environment), and `NODE_USE_ENV_PROXY=1` is already set in the cloud environment. Text is verbatim, from "Repo facts".
 
 > In this container Node 22 does not read `HTTPS_PROXY` for `fetch`: run `NODE_USE_ENV_PROXY=1 npm run verify:rls`.
+
+# 2026-10-02 — Vercel preparation session (nothing moved out of CONTEXT.md)
+
+Reviewed `CONTEXT.md` against this session's changes (added `vercel.json`, no code, migration or script changes). Nothing in it stopped being true, so nothing was moved; "Repo facts" gained the `vercel.json`, environment-variable and sign-in entries. Session checks, for the record: `npm run build` passed (488.07 kB JS, real client bundled); `check-context-size`, `check-migration` (no migration changes), `migration-rules.test` (26/26) and `verify-rls` (all eight tables refused, signup 422, key `role: anon`, ref `ieszecmiijxkcrxirwuk`) all exited 0.
